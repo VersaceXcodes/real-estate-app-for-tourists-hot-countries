@@ -1055,8 +1055,30 @@ app.post('/api/properties', authenticateToken, async (req, res) => {
       ]);
       
       const property = result.rows[0];
-      property.amenities = property.amenities ? JSON.parse(property.amenities) : [];
-      property.house_rules = property.house_rules ? JSON.parse(property.house_rules) : [];
+      
+      // Handle amenities - check if it's already parsed or needs parsing
+      try {
+        if (typeof property.amenities === 'string') {
+          property.amenities = JSON.parse(property.amenities);
+        } else if (!Array.isArray(property.amenities)) {
+          property.amenities = [];
+        }
+      } catch (e) {
+        console.error('Error parsing amenities:', property.amenities, e);
+        property.amenities = [];
+      }
+      
+      // Handle house_rules - check if it's already parsed or needs parsing
+      try {
+        if (typeof property.house_rules === 'string') {
+          property.house_rules = JSON.parse(property.house_rules);
+        } else if (!Array.isArray(property.house_rules)) {
+          property.house_rules = [];
+        }
+      } catch (e) {
+        console.error('Error parsing house_rules:', property.house_rules, e);
+        property.house_rules = [];
+      }
       
       res.status(201).json(property);
     } finally {
@@ -3713,61 +3735,7 @@ app.get('/api/currency-rates', async (req, res) => {
 // SYSTEM ALERTS ENDPOINTS
 // ============================================================================
 
-/*
-  GET /api/system-alerts - Gets active system alerts
-*/
-app.get('/api/system-alerts', async (req, res) => {
-  try {
-    const { severity, is_active = true, limit = 10, offset = 0 } = req.query;
-    
-    const client = await pool.connect();
-    
-    try {
-      let whereConditions = [];
-      let queryParams = [];
-      let paramIndex = 1;
-      
-      if (is_active !== undefined) {
-        whereConditions.push(`is_active = $${paramIndex}`);
-        queryParams.push(is_active === 'true');
-        paramIndex++;
-      }
-      
-      if (severity) {
-        whereConditions.push(`severity = $${paramIndex}`);
-        queryParams.push(severity);
-        paramIndex++;
-      }
-      
-      const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-      
-      const query = `
-        SELECT * FROM system_alerts
-        ${whereClause}
-        ORDER BY created_at DESC
-        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-      `;
-      
-      queryParams.push(parseInt(limit), parseInt(offset));
-      
-      const result = await client.query(query, queryParams);
-      
-      // Get total count
-      const countQuery = `SELECT COUNT(*) FROM system_alerts ${whereClause}`;
-      const countResult = await client.query(countQuery, queryParams.slice(0, -2));
-      
-      res.json({
-        alerts: result.rows,
-        total: parseInt(countResult.rows[0].count)
-      });
-    } finally {
-      client.release();
-    }
-  } catch (error) {
-    console.error('Get system alerts error:', error);
-    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
-  }
-});
+
 
 // ============================================================================
 // LOCATION ENDPOINTS
@@ -3927,66 +3895,7 @@ app.get('/api/locations/:location_id/attractions', async (req, res) => {
 // INVESTMENT ANALYTICS ENDPOINTS
 // ============================================================================
 
-/*
-  GET /api/market-data - Gets market analysis data (host access required)
-*/
-app.get('/api/market-data', authenticateToken, async (req, res) => {
-  try {
-    // Only hosts and admins can access market data
-    if (req.user.user_type !== 'host' && req.user.user_type !== 'admin') {
-      return res.status(403).json(createErrorResponse('Permission denied - host access required', null, 'PERMISSION_DENIED'));
-    }
-    
-    const { location_id, property_type, limit = 10, offset = 0 } = req.query;
-    
-    const client = await pool.connect();
-    
-    try {
-      let whereConditions = [];
-      let queryParams = [];
-      let paramIndex = 1;
-      
-      if (location_id) {
-        whereConditions.push(`location_id = $${paramIndex}`);
-        queryParams.push(location_id);
-        paramIndex++;
-      }
-      
-      if (property_type) {
-        whereConditions.push(`property_type = $${paramIndex}`);
-        queryParams.push(property_type);
-        paramIndex++;
-      }
-      
-      const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-      
-      const query = `
-        SELECT * FROM investment_analytics
-        ${whereClause}
-        ORDER BY analysis_date DESC
-        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-      `;
-      
-      queryParams.push(parseInt(limit), parseInt(offset));
-      
-      const result = await client.query(query, queryParams);
-      
-      // Get total count
-      const countQuery = `SELECT COUNT(*) FROM investment_analytics ${whereClause}`;
-      const countResult = await client.query(countQuery, queryParams.slice(0, -2));
-      
-      res.json({
-        market_data: result.rows,
-        total: parseInt(countResult.rows[0].count)
-      });
-    } finally {
-      client.release();
-    }
-  } catch (error) {
-    console.error('Get market data error:', error);
-    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
-  }
-});
+
 
 /*
   GET /api/properties/:property_id/analytics - Gets property investment analytics
