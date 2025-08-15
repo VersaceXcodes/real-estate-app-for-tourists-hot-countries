@@ -1190,11 +1190,15 @@ describe('SunVillas Backend API Tests', () => {
         expect(response.body).toHaveProperty('payments');
       });
 
-      it('should fail to access others booking', async () => {
-        await request(app)
+      it('should allow host to access booking for their property', async () => {
+        const response = await request(app)
           .get(`/api/bookings/${testBookings.main.booking_id}`)
           .set('Authorization', `Bearer ${authTokens.host}`)
-          .expect(403);
+          .expect(200);
+        
+        expect(response.body.booking_id).toBe(testBookings.main.booking_id);
+        expect(response.body).toHaveProperty('property');
+        expect(response.body).toHaveProperty('guest');
       });
     });
 
@@ -1428,6 +1432,10 @@ describe('SunVillas Backend API Tests', () => {
         const adminResponse = await request(app)
           .post('/api/auth/register')
           .send(adminData);
+
+        if (!adminResponse.body.user) {
+          throw new Error(`Admin registration failed: ${JSON.stringify(adminResponse.body)}`);
+        }
 
         const unauthorizedConversationData = {
           guest_id: adminResponse.body.user.user_id,

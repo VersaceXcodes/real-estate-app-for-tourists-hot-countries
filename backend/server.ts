@@ -2149,9 +2149,23 @@ app.put('/api/payments/:payment_id', authenticateToken, async (req, res) => {
   try {
     const { payment_id } = req.params;
 
-    // Only admins should be able to update payment status directly
-    if (req.user.user_type !== 'admin') {
-      return res.status(403).json(createErrorResponse('Permission denied - admin access required', null, 'PERMISSION_DENIED'));
+    // Check if user has permission to update this payment
+    const permissionResult = await pool.query(`
+      SELECT p.payment_id, b.guest_id 
+      FROM payments p 
+      JOIN bookings b ON p.booking_id = b.booking_id 
+      WHERE p.payment_id = $1
+    `, [payment_id]);
+
+    if (permissionResult.rows.length === 0) {
+      return res.status(404).json(createErrorResponse('Payment not found', null, 'PAYMENT_NOT_FOUND'));
+    }
+
+    const payment = permissionResult.rows[0];
+    
+    // Only admins or the guest who made the booking can update payment status
+    if (req.user.user_type !== 'admin' && req.user.user_id !== payment.guest_id) {
+      return res.status(403).json(createErrorResponse('Permission denied', null, 'PERMISSION_DENIED'));
     }
 
     const validatedData = updatePaymentInputSchema.parse({ payment_id, ...req.body });
@@ -2583,7 +2597,7 @@ app.post('/api/messages', authenticateToken, async (req, res) => {
         ) VALUES ($1, $2, $3, $4, $5, false, $6, $7, $8)
         RETURNING *
       `, [
-        message_id, validatedData.conversation_id, validatedData.sender_id, validatedData.message_text,
+        message_id, validatedData.conversation_id, req.user.user_id, validatedData.message_text,
         validatedData.attachments ? JSON.stringify(validatedData.attachments) : '[]',
         validatedData.message_type || 'text', validatedData.is_automated || false, timestamp
       ]);
@@ -3250,7 +3264,7 @@ app.post('/api/reviews', authenticateToken, async (req, res) => {
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true, $15, $16)
         RETURNING *
       `, [
-        review_id, validatedData.booking_id, validatedData.property_id, validatedData.reviewer_id,
+        review_id, validatedData.booking_id, validatedData.property_id, req.user.user_id,
         validatedData.overall_rating, validatedData.cleanliness_rating, validatedData.accuracy_rating,
         validatedData.communication_rating, validatedData.location_rating, validatedData.checkin_rating,
         validatedData.value_rating, validatedData.review_text,

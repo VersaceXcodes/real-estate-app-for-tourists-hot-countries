@@ -390,7 +390,6 @@ export const reviewSchema = z.object({
 export const createReviewInputSchema = z.object({
   booking_id: z.string(),
   property_id: z.string(),
-  reviewer_id: z.string(),
   overall_rating: z.number().int().min(1).max(5),
   cleanliness_rating: z.number().int().min(1).max(5),
   accuracy_rating: z.number().int().min(1).max(5),
