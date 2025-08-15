@@ -521,7 +521,13 @@ app.get('/api/users/:user_id', async (req, res) => {
       }
 
       const user = result.rows[0];
-      user.languages_spoken = user.languages_spoken ? JSON.parse(user.languages_spoken) : [];
+      
+      // Safely parse JSON fields
+      try {
+        user.languages_spoken = user.languages_spoken && user.languages_spoken.trim() !== '' ? JSON.parse(user.languages_spoken) : [];
+      } catch (e) {
+        user.languages_spoken = [];
+      }
 
       res.json(user);
     } finally {
@@ -592,8 +598,19 @@ app.put('/api/users/:user_id', authenticateToken, async (req, res) => {
       }
 
       const user = result.rows[0];
-      user.languages_spoken = user.languages_spoken ? JSON.parse(user.languages_spoken) : [];
-      user.notification_settings = user.notification_settings ? JSON.parse(user.notification_settings) : {};
+      
+      // Safely parse JSON fields
+      try {
+        user.languages_spoken = user.languages_spoken && user.languages_spoken.trim() !== '' ? JSON.parse(user.languages_spoken) : [];
+      } catch (e) {
+        user.languages_spoken = [];
+      }
+      
+      try {
+        user.notification_settings = user.notification_settings && user.notification_settings.trim() !== '' ? JSON.parse(user.notification_settings) : {};
+      } catch (e) {
+        user.notification_settings = {};
+      }
 
       res.json(user);
     } finally {
@@ -681,9 +698,25 @@ app.get('/api/users/:user_id/favorites', authenticateToken, async (req, res) => 
       `, [user_id]);
 
       const properties = result.rows.map(row => {
-        row.amenities = row.amenities ? JSON.parse(row.amenities) : [];
-        row.house_rules = row.house_rules ? JSON.parse(row.house_rules) : [];
-        row.host_language = row.host_language ? JSON.parse(row.host_language) : [];
+        // Safely parse JSON fields
+        try {
+          row.amenities = row.amenities && row.amenities.trim() !== '' ? JSON.parse(row.amenities) : [];
+        } catch (e) {
+          row.amenities = [];
+        }
+        
+        try {
+          row.house_rules = row.house_rules && row.house_rules.trim() !== '' ? JSON.parse(row.house_rules) : [];
+        } catch (e) {
+          row.house_rules = [];
+        }
+        
+        try {
+          row.host_language = row.host_language && row.host_language.trim() !== '' ? JSON.parse(row.host_language) : [];
+        } catch (e) {
+          row.host_language = [];
+        }
+        
         return row;
       });
 
@@ -1122,9 +1155,49 @@ app.get('/api/properties/:property_id', async (req, res) => {
       }
       
       const property = result.rows[0];
-      property.amenities = property.amenities ? JSON.parse(property.amenities) : [];
-      property.house_rules = property.house_rules ? JSON.parse(property.house_rules) : [];
-      property.host_language = property.host_language ? JSON.parse(property.host_language) : [];
+      
+      // Safely parse JSON fields
+      try {
+        property.amenities = property.amenities && property.amenities.trim() !== '' ? JSON.parse(property.amenities) : [];
+      } catch (e) {
+        property.amenities = [];
+      }
+      
+      try {
+        property.house_rules = property.house_rules && property.house_rules.trim() !== '' ? JSON.parse(property.house_rules) : [];
+      } catch (e) {
+        property.house_rules = [];
+      }
+      
+      try {
+        property.host_language = property.host_language && property.host_language.trim() !== '' ? JSON.parse(property.host_language) : [];
+      } catch (e) {
+        property.host_language = [];
+      }
+      
+      // Get property photos
+      const photosResult = await client.query(`
+        SELECT photo_id, photo_url, photo_order, is_cover_photo, alt_text
+        FROM property_photos
+        WHERE property_id = $1
+        ORDER BY photo_order, created_at
+      `, [property_id]);
+      
+      property.photos = photosResult.rows;
+      
+      // Create owner object without sensitive information
+      property.owner = {
+        first_name: property.first_name,
+        last_name: property.last_name,
+        is_superhost: property.is_superhost,
+        profile_photo_url: property.owner_photo
+      };
+      
+      // Remove owner fields from main property object
+      delete property.first_name;
+      delete property.last_name;
+      delete property.is_superhost;
+      delete property.owner_photo;
       
       // If dates provided, include availability and pricing
       if (check_in_date && check_out_date) {
@@ -1136,6 +1209,22 @@ app.get('/api/properties/:property_id', async (req, res) => {
         `, [property_id, check_in_date, check_out_date]);
         
         property.availability = availabilityResult.rows;
+        
+        // Calculate pricing for the stay
+        const nights = Math.ceil((new Date(check_out_date as string).getTime() - new Date(check_in_date as string).getTime()) / (1000 * 60 * 60 * 24));
+        const basePrice = parseFloat(property.base_price_per_night) * nights;
+        const cleaningFee = parseFloat(property.cleaning_fee || '0');
+        const serviceFee = basePrice * 0.1; // 10% service fee
+        const taxesAndFees = basePrice * 0.06; // 6% taxes
+        
+        property.pricing = {
+          base_price: basePrice,
+          cleaning_fee: cleaningFee,
+          service_fee: serviceFee,
+          taxes_and_fees: taxesAndFees,
+          total_price: basePrice + cleaningFee + serviceFee + taxesAndFees,
+          nights: nights
+        };
       }
       
       res.json(property);
@@ -1217,6 +1306,18 @@ app.post('/api/bookings', authenticateToken, async (req, res) => {
       ]);
 
       const booking = result.rows[0];
+      
+      // Convert numeric fields from strings to numbers
+      booking.nights = parseInt(booking.nights);
+      booking.base_price = parseFloat(booking.base_price);
+      booking.cleaning_fee = parseFloat(booking.cleaning_fee);
+      booking.service_fee = parseFloat(booking.service_fee);
+      booking.taxes_and_fees = parseFloat(booking.taxes_and_fees);
+      booking.total_price = parseFloat(booking.total_price);
+      booking.guest_count = parseInt(booking.guest_count);
+      booking.adults = parseInt(booking.adults);
+      booking.children = parseInt(booking.children);
+      booking.infants = parseInt(booking.infants);
 
       // Mark dates as unavailable
       for (let d = new Date(checkInDate); d < checkOutDate; d.setDate(d.getDate() + 1)) {

@@ -505,6 +505,9 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_availability_property') THEN
         ALTER TABLE property_availability ADD CONSTRAINT fk_availability_property FOREIGN KEY (property_id) REFERENCES properties(property_id);
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'unique_property_date') THEN
+        ALTER TABLE property_availability ADD CONSTRAINT unique_property_date UNIQUE (property_id, date);
+    END IF;
     
     -- Saved searches constraints
     IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_saved_searches_user') THEN

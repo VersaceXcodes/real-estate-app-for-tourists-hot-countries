@@ -42,8 +42,26 @@ describe('SunVillas Backend API Tests', () => {
   beforeAll(async () => {
     // Clean up any existing test data first (in proper order to handle foreign keys)
     try {
-      // Delete in order to handle foreign key constraints
-      await pool.query('DELETE FROM bookings WHERE guest_id IN (SELECT user_id FROM users WHERE email IN ($1, $2, $3, $4))', [
+      // Delete in proper order to avoid foreign key constraint violations
+      await pool.query('DELETE FROM user_favorites WHERE user_id IN (SELECT user_id FROM users WHERE email IN ($1, $2, $3, $4))', [
+        'testuser@example.com', 
+        'testhost@example.com',
+        'newuser@example.com',
+        'newhost@example.com'
+      ]);
+      await pool.query('DELETE FROM bookings WHERE guest_id IN (SELECT user_id FROM users WHERE email IN ($1, $2, $3, $4)) OR property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email IN ($1, $2, $3, $4)))', [
+        'testuser@example.com', 
+        'testhost@example.com',
+        'newuser@example.com',
+        'newhost@example.com'
+      ]);
+      await pool.query('DELETE FROM property_availability WHERE property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email IN ($1, $2, $3, $4)))', [
+        'testuser@example.com', 
+        'testhost@example.com',
+        'newuser@example.com',
+        'newhost@example.com'
+      ]);
+      await pool.query('DELETE FROM property_photos WHERE property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email IN ($1, $2, $3, $4)))', [
         'testuser@example.com', 
         'testhost@example.com',
         'newuser@example.com',
@@ -62,7 +80,7 @@ describe('SunVillas Backend API Tests', () => {
         'newhost@example.com'
       ]);
     } catch (error) {
-      console.log('Initial cleanup error (expected):', error.message);
+      console.log('Cleanup error:', error);
     }
 
     // Create test users for all tests to use
@@ -165,8 +183,26 @@ describe('SunVillas Backend API Tests', () => {
   afterAll(async () => {
     // Cleanup test database in proper order
     try {
-      // Delete in order to handle foreign key constraints
-      await pool.query('DELETE FROM bookings WHERE guest_id IN (SELECT user_id FROM users WHERE email IN ($1, $2, $3, $4))', [
+      // Delete in proper order to avoid foreign key constraint violations
+      await pool.query('DELETE FROM user_favorites WHERE user_id IN (SELECT user_id FROM users WHERE email IN ($1, $2, $3, $4))', [
+        'testuser@example.com', 
+        'testhost@example.com',
+        'newuser@example.com',
+        'newhost@example.com'
+      ]);
+      await pool.query('DELETE FROM bookings WHERE guest_id IN (SELECT user_id FROM users WHERE email IN ($1, $2, $3, $4)) OR property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email IN ($1, $2, $3, $4)))', [
+        'testuser@example.com', 
+        'testhost@example.com',
+        'newuser@example.com',
+        'newhost@example.com'
+      ]);
+      await pool.query('DELETE FROM property_availability WHERE property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email IN ($1, $2, $3, $4)))', [
+        'testuser@example.com', 
+        'testhost@example.com',
+        'newuser@example.com',
+        'newhost@example.com'
+      ]);
+      await pool.query('DELETE FROM property_photos WHERE property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email IN ($1, $2, $3, $4)))', [
         'testuser@example.com', 
         'testhost@example.com',
         'newuser@example.com',
@@ -185,7 +221,7 @@ describe('SunVillas Backend API Tests', () => {
         'newhost@example.com'
       ]);
     } catch (error) {
-      console.log('Cleanup error:', error);
+      console.log('Initial cleanup error (expected):', error.message);
     }
     
     // Close WebSocket connections to prevent Jest open handles
