@@ -195,7 +195,7 @@ const UV_PropertyDetail: React.FC = () => {
       if (!property_id) throw new Error('Property ID is required');
       
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/properties/${property_id}/api/reviews?limit=10&offset=${reviewsPage * 10}&sort_by=created_at&sort_order=desc`
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/reviews?property_id=${property_id}&limit=10&offset=${reviewsPage * 10}&sort_by=created_at&sort_order=desc`
       );
       return response.data;
     },
@@ -212,7 +212,7 @@ const UV_PropertyDetail: React.FC = () => {
       if (!currentUser?.user_id || !authToken) return { favorites: [] };
       
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser.user_id}/api/favorites`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser.user_id}/favorites`,
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
       return response.data;
@@ -283,12 +283,12 @@ const UV_PropertyDetail: React.FC = () => {
       
       if (isFavorited) {
         await axios.delete(
-          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser.user_id}/api/favorites/${property_id}`,
+          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser.user_id}/favorites/${property_id}`,
           { headers: { Authorization: `Bearer ${authToken}` } }
         );
       } else {
         await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser.user_id}/api/favorites`,
+          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser.user_id}/favorites`,
           { property_id },
           { headers: { Authorization: `Bearer ${authToken}` } }
         );
@@ -357,7 +357,9 @@ const UV_PropertyDetail: React.FC = () => {
     if (!selectedDates.check_in_date || !selectedDates.check_out_date) {
       alert('Please select check-in and check-out dates');
       return;
-    }/api// Update global booking state
+    }
+
+    // Update global booking state
     setCurrentBooking({
       booking_id: '',
       property_id: property_id!,
@@ -450,7 +452,7 @@ const UV_PropertyDetail: React.FC = () => {
           <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
             <div className="relative w-full h-full max-w-6xl max-h-full flex flex-col">
               <div className="flex justify-between items-center p-4 text-white">
-                <h3 className="text-lg font-semibold">{selectedPhotoIndex + 1}/api/ {propertyData.photos.length}</h3>
+                <h3 className="text-lg font-semibold">{selectedPhotoIndex + 1} / {propertyData.photos.length}</h3>
                 <button
                   onClick={() => setShowAllPhotos(false)}
                   className="text-white hover:text-gray-300 text-2xl font-bold"
@@ -571,7 +573,8 @@ const UV_PropertyDetail: React.FC = () => {
                         onClick={() => {
                           setSelectedPhotoIndex(index + 1);
                           setShowAllPhotos(true);
-                        }}/api/>
+                        }}
+                      />
                       {index === 3 && propertyData.photos.length > 5 && (
                         <div 
                           className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center cursor-pointer"

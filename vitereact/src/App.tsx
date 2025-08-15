@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAppStore } from '@/store/main';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 // Import all required view components
 import GV_TopNav from '@/components/views/GV_TopNav.tsx';
@@ -91,10 +92,11 @@ const App: React.FC = () => {
   }
   
   return (
-    <Router>
-      <QueryClientProvider client={queryClient}>
-        <AppLayout>
-          <Routes>
+    <ErrorBoundary>
+      <Router>
+        <QueryClientProvider client={queryClient}>
+          <AppLayout>
+            <Routes>
             {/* Public Routes */}
             <Route path="/" element={<UV_Landing />} />
             
@@ -220,6 +222,7 @@ const App: React.FC = () => {
         </AppLayout>
       </QueryClientProvider>
     </Router>
+    </ErrorBoundary>
   );
 };
 

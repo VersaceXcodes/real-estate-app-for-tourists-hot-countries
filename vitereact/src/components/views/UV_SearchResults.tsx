@@ -51,7 +51,9 @@ interface SavedSearch {
 interface UserFavorite {
   property_id: string;
   favorited_at: string;
-}/api// Filter interfaces
+}
+
+// Filter interfaces
 interface SearchFilters {
   destination: string;
   check_in_date: string;
@@ -115,7 +117,25 @@ const UV_SearchResults: React.FC = () => {
   const updateURL = useCallback((newFilters: Partial<SearchFilters>, newPage: number = 1) => {
     const params = new URLSearchParams();
     
-    const filters = { ...searchFilters, ...newFilters };
+    // Get current filters from searchParams directly to avoid dependency on searchFilters
+    const currentFilters = {
+      destination: searchParams.get('destination') || '',
+      check_in_date: searchParams.get('check_in_date') || '',
+      check_out_date: searchParams.get('check_out_date') || '',
+      guest_count: parseInt(searchParams.get('guest_count') || '1'),
+      property_type: searchParams.get('property_type') || '',
+      price_min: parseFloat(searchParams.get('price_min') || '0'),
+      price_max: parseFloat(searchParams.get('price_max') || '0'),
+      amenities: searchParams.get('amenities') ? searchParams.get('amenities')!.split(',') : [],
+      instant_booking: searchParams.get('instant_booking') === 'true',
+      distance_beach: parseFloat(searchParams.get('distance_beach') || '0'),
+      distance_airport: parseFloat(searchParams.get('distance_airport') || '0'),
+      host_language: searchParams.get('host_language') || '',
+      sort_by: searchParams.get('sort_by') || 'created_at',
+      sort_order: searchParams.get('sort_order') || 'desc',
+    };
+    
+    const filters = { ...currentFilters, ...newFilters };
     
     Object.entries(filters).forEach(([key, value]) => {
       if (value && value !== '' && value !== 0 && (Array.isArray(value) ? value.length > 0 : true)) {
@@ -135,7 +155,7 @@ const UV_SearchResults: React.FC = () => {
     
     setSearchParams(params);
     setCurrentPage(newPage);
-  }, [searchFilters, viewMode, setSearchParams]);
+  }, [searchParams, viewMode, setSearchParams]);
 
   // Property search query
   const { data: searchData, isLoading: isSearching, error: searchError } = useQuery({
@@ -173,7 +193,7 @@ const UV_SearchResults: React.FC = () => {
       if (!currentUser?.user_id || !authToken) return [];
       
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser.user_id}/api/favorites`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser.user_id}/favorites`,
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
       
@@ -210,12 +230,12 @@ const UV_SearchResults: React.FC = () => {
       
       if (isFavorited) {
         await axios.delete(
-          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser.user_id}/api/favorites/${propertyId}`,
+          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser.user_id}/favorites/${propertyId}`,
           { headers: { Authorization: `Bearer ${authToken}` } }
         );
       } else {
         await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser.user_id}/api/favorites`,
+          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser.user_id}/favorites`,
           { property_id: propertyId },
           { headers: { Authorization: `Bearer ${authToken}` } }
         );
