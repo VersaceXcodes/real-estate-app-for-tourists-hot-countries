@@ -241,9 +241,9 @@ export const propertyPhotoSchema = z.object({
 export const createPropertyPhotoInputSchema = z.object({
   property_id: z.string(),
   photo_url: z.string().url().max(500),
-  photo_order: z.number().int().min(1),
+  photo_order: z.number().int().min(1).optional(),
   is_cover_photo: z.boolean().default(false),
-  alt_text: z.string().max(500).nullable()
+  alt_text: z.string().max(500).nullable().optional()
 });
 
 export const updatePropertyPhotoInputSchema = z.object({
@@ -434,12 +434,12 @@ export const conversationSchema = z.object({
 });
 
 export const createConversationInputSchema = z.object({
-  property_id: z.string().nullable(),
-  booking_id: z.string().nullable(),
+  property_id: z.string().nullable().optional(),
+  booking_id: z.string().nullable().optional(),
   guest_id: z.string(),
   host_id: z.string(),
   conversation_type: z.enum(['inquiry', 'booking', 'support']).default('inquiry'),
-  subject: z.string().max(500).nullable()
+  subject: z.string().max(500).nullable().optional()
 });
 
 export const updateConversationInputSchema = z.object({

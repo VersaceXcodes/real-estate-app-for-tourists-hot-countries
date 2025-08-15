@@ -42,43 +42,39 @@ describe('SunVillas Backend API Tests', () => {
   beforeAll(async () => {
     // Clean up any existing test data first (in proper order to handle foreign keys)
     try {
+      const testEmails = ['testuser@example.com', 'testhost@example.com', 'newuser@example.com', 'newhost@example.com'];
+      
       // Delete in proper order to avoid foreign key constraint violations
-      await pool.query('DELETE FROM user_favorites WHERE user_id IN (SELECT user_id FROM users WHERE email IN ($1, $2, $3, $4))', [
-        'testuser@example.com', 
-        'testhost@example.com',
-        'newuser@example.com',
-        'newhost@example.com'
-      ]);
-      await pool.query('DELETE FROM bookings WHERE guest_id IN (SELECT user_id FROM users WHERE email IN ($1, $2, $3, $4)) OR property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email IN ($1, $2, $3, $4)))', [
-        'testuser@example.com', 
-        'testhost@example.com',
-        'newuser@example.com',
-        'newhost@example.com'
-      ]);
-      await pool.query('DELETE FROM property_availability WHERE property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email IN ($1, $2, $3, $4)))', [
-        'testuser@example.com', 
-        'testhost@example.com',
-        'newuser@example.com',
-        'newhost@example.com'
-      ]);
-      await pool.query('DELETE FROM property_photos WHERE property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email IN ($1, $2, $3, $4)))', [
-        'testuser@example.com', 
-        'testhost@example.com',
-        'newuser@example.com',
-        'newhost@example.com'
-      ]);
-      await pool.query('DELETE FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email IN ($1, $2, $3, $4))', [
-        'testuser@example.com', 
-        'testhost@example.com',
-        'newuser@example.com',
-        'newhost@example.com'
-      ]);
-      await pool.query('DELETE FROM users WHERE email IN ($1, $2, $3, $4)', [
-        'testuser@example.com', 
-        'testhost@example.com',
-        'newuser@example.com',
-        'newhost@example.com'
-      ]);
+      // 1. Delete messages first (references conversations)
+      await pool.query('DELETE FROM messages WHERE conversation_id IN (SELECT conversation_id FROM conversations WHERE guest_id IN (SELECT user_id FROM users WHERE email = ANY($1)) OR host_id IN (SELECT user_id FROM users WHERE email = ANY($1)))', [testEmails]);
+      
+      // 2. Delete conversations (references properties and users)
+      await pool.query('DELETE FROM conversations WHERE guest_id IN (SELECT user_id FROM users WHERE email = ANY($1)) OR host_id IN (SELECT user_id FROM users WHERE email = ANY($1))', [testEmails]);
+      
+      // 3. Delete reviews (references bookings and properties)
+      await pool.query('DELETE FROM reviews WHERE reviewer_id IN (SELECT user_id FROM users WHERE email = ANY($1)) OR property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email = ANY($1)))', [testEmails]);
+      
+      // 4. Delete payments (references bookings)
+      await pool.query('DELETE FROM payments WHERE booking_id IN (SELECT booking_id FROM bookings WHERE guest_id IN (SELECT user_id FROM users WHERE email = ANY($1)) OR property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email = ANY($1))))', [testEmails]);
+      
+      // 5. Delete bookings (references properties and users)
+      await pool.query('DELETE FROM bookings WHERE guest_id IN (SELECT user_id FROM users WHERE email = ANY($1)) OR property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email = ANY($1)))', [testEmails]);
+      
+      // 6. Delete user favorites
+      await pool.query('DELETE FROM user_favorites WHERE user_id IN (SELECT user_id FROM users WHERE email = ANY($1))', [testEmails]);
+      
+      // 7. Delete property-related data
+      await pool.query('DELETE FROM property_availability WHERE property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email = ANY($1)))', [testEmails]);
+      await pool.query('DELETE FROM property_photos WHERE property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email = ANY($1)))', [testEmails]);
+      
+      // 8. Delete properties
+      await pool.query('DELETE FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email = ANY($1))', [testEmails]);
+      
+      // 9. Delete notifications
+      await pool.query('DELETE FROM notifications WHERE user_id IN (SELECT user_id FROM users WHERE email = ANY($1))', [testEmails]);
+      
+      // 10. Finally delete users
+      await pool.query('DELETE FROM users WHERE email = ANY($1)', [testEmails]);
     } catch (error) {
       console.log('Cleanup error:', error);
     }
@@ -183,45 +179,41 @@ describe('SunVillas Backend API Tests', () => {
   afterAll(async () => {
     // Cleanup test database in proper order
     try {
+      const testEmails = ['testuser@example.com', 'testhost@example.com', 'newuser@example.com', 'newhost@example.com'];
+      
       // Delete in proper order to avoid foreign key constraint violations
-      await pool.query('DELETE FROM user_favorites WHERE user_id IN (SELECT user_id FROM users WHERE email IN ($1, $2, $3, $4))', [
-        'testuser@example.com', 
-        'testhost@example.com',
-        'newuser@example.com',
-        'newhost@example.com'
-      ]);
-      await pool.query('DELETE FROM bookings WHERE guest_id IN (SELECT user_id FROM users WHERE email IN ($1, $2, $3, $4)) OR property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email IN ($1, $2, $3, $4)))', [
-        'testuser@example.com', 
-        'testhost@example.com',
-        'newuser@example.com',
-        'newhost@example.com'
-      ]);
-      await pool.query('DELETE FROM property_availability WHERE property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email IN ($1, $2, $3, $4)))', [
-        'testuser@example.com', 
-        'testhost@example.com',
-        'newuser@example.com',
-        'newhost@example.com'
-      ]);
-      await pool.query('DELETE FROM property_photos WHERE property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email IN ($1, $2, $3, $4)))', [
-        'testuser@example.com', 
-        'testhost@example.com',
-        'newuser@example.com',
-        'newhost@example.com'
-      ]);
-      await pool.query('DELETE FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email IN ($1, $2, $3, $4))', [
-        'testuser@example.com', 
-        'testhost@example.com',
-        'newuser@example.com',
-        'newhost@example.com'
-      ]);
-      await pool.query('DELETE FROM users WHERE email IN ($1, $2, $3, $4)', [
-        'testuser@example.com', 
-        'testhost@example.com',
-        'newuser@example.com',
-        'newhost@example.com'
-      ]);
+      // 1. Delete messages first (references conversations)
+      await pool.query('DELETE FROM messages WHERE conversation_id IN (SELECT conversation_id FROM conversations WHERE guest_id IN (SELECT user_id FROM users WHERE email = ANY($1)) OR host_id IN (SELECT user_id FROM users WHERE email = ANY($1)))', [testEmails]);
+      
+      // 2. Delete conversations (references properties and users)
+      await pool.query('DELETE FROM conversations WHERE guest_id IN (SELECT user_id FROM users WHERE email = ANY($1)) OR host_id IN (SELECT user_id FROM users WHERE email = ANY($1))', [testEmails]);
+      
+      // 3. Delete reviews (references bookings and properties)
+      await pool.query('DELETE FROM reviews WHERE reviewer_id IN (SELECT user_id FROM users WHERE email = ANY($1)) OR property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email = ANY($1)))', [testEmails]);
+      
+      // 4. Delete payments (references bookings)
+      await pool.query('DELETE FROM payments WHERE booking_id IN (SELECT booking_id FROM bookings WHERE guest_id IN (SELECT user_id FROM users WHERE email = ANY($1)) OR property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email = ANY($1))))', [testEmails]);
+      
+      // 5. Delete bookings (references properties and users)
+      await pool.query('DELETE FROM bookings WHERE guest_id IN (SELECT user_id FROM users WHERE email = ANY($1)) OR property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email = ANY($1)))', [testEmails]);
+      
+      // 6. Delete user favorites
+      await pool.query('DELETE FROM user_favorites WHERE user_id IN (SELECT user_id FROM users WHERE email = ANY($1))', [testEmails]);
+      
+      // 7. Delete property-related data
+      await pool.query('DELETE FROM property_availability WHERE property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email = ANY($1)))', [testEmails]);
+      await pool.query('DELETE FROM property_photos WHERE property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email = ANY($1)))', [testEmails]);
+      
+      // 8. Delete properties
+      await pool.query('DELETE FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email = ANY($1))', [testEmails]);
+      
+      // 9. Delete notifications
+      await pool.query('DELETE FROM notifications WHERE user_id IN (SELECT user_id FROM users WHERE email = ANY($1))', [testEmails]);
+      
+      // 10. Finally delete users
+      await pool.query('DELETE FROM users WHERE email = ANY($1)', [testEmails]);
     } catch (error) {
-      console.log('Initial cleanup error (expected):', error.message);
+      console.log('Final cleanup error (expected):', error.message);
     }
     
     // Close WebSocket connections to prevent Jest open handles

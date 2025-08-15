@@ -1368,12 +1368,12 @@ app.post('/api/properties/:property_id/photos', authenticateToken, async (req, r
       
       const result = await client.query(`
         INSERT INTO property_photos (
-          photo_id, property_id, photo_url, photo_order, is_cover_photo, alt_text, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          photo_id, property_id, photo_url, photo_order, is_cover_photo, alt_text, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING *
       `, [
-        photo_id, property_id, validatedData.photo_url, validatedData.photo_order || 0,
-        validatedData.is_cover_photo || false, validatedData.alt_text || '', timestamp, timestamp
+        photo_id, property_id, validatedData.photo_url, validatedData.photo_order || 1,
+        validatedData.is_cover_photo || false, validatedData.alt_text || '', timestamp
       ]);
       
       res.status(201).json(result.rows[0]);
@@ -1465,9 +1465,10 @@ app.get('/api/properties/:property_id/availability', async (req, res) => {
 app.put('/api/properties/:property_id/availability', authenticateToken, async (req, res) => {
   try {
     const { property_id } = req.params;
-    const { availability } = req.body;
+    const { availability, availability_updates } = req.body;
+    const availabilityData = availability || availability_updates;
     
-    if (!availability || !Array.isArray(availability)) {
+    if (!availabilityData || !Array.isArray(availabilityData)) {
       return res.status(400).json(createErrorResponse('availability array is required', null, 'MISSING_AVAILABILITY'));
     }
     
@@ -1485,7 +1486,7 @@ app.put('/api/properties/:property_id/availability', authenticateToken, async (r
       }
       
       // Update availability for each date
-      for (const avail of availability) {
+      for (const avail of availabilityData) {
         await client.query(`
           INSERT INTO property_availability (property_id, date, is_available, price_per_night, is_blocked, updated_at)
           VALUES ($1, $2, $3, $4, $5, $6)
@@ -1518,6 +1519,11 @@ app.post('/api/bookings', authenticateToken, async (req, res) => {
   try {
     const validatedData = createBookingInputSchema.parse(req.body);
 
+    // Ensure guest_id matches authenticated user
+    if (validatedData.guest_id !== req.user.user_id) {
+      return res.status(403).json(createErrorResponse('Cannot create booking for another user', null, 'UNAUTHORIZED'));
+    }
+
     const client = await pool.connect();
     
     try {
@@ -1531,7 +1537,7 @@ app.post('/api/bookings', authenticateToken, async (req, res) => {
 
       // Check guest capacity
       if (validatedData.guest_count > property.guest_count) {
-        return res.status(400).json(createErrorResponse('Guest count exceeds property capacity', null, 'GUEST_COUNT_EXCEEDED'));
+        return res.status(400).json(createErrorResponse(`Guest count exceeds property capacity of ${property.guest_count}`, null, 'GUEST_COUNT_EXCEEDED'));
       }
 
       // Check availability for the requested dates
@@ -2066,47 +2072,16 @@ app.post('/api/payments', authenticateToken, async (req, res) => {
         RETURNING *
       `, [
         payment_id, validatedData.booking_id, validatedData.amount, validatedData.currency,
-        validatedData.payment_method, mockPaymentSuccess ? 'completed' : 'failed',
-        mockPaymentSuccess ? mockTransactionId : null,
-        mockPaymentSuccess ? timestamp : null, timestamp, timestamp
+        validatedData.payment_method, 'pending',
+        validatedData.transaction_id || mockTransactionId,
+        null, timestamp, timestamp
       ]);
 
-      // Update booking payment status
-      if (mockPaymentSuccess) {
-        await client.query(`
-          UPDATE bookings SET payment_status = 'completed', booking_status = 'confirmed', updated_at = $1
-          WHERE booking_id = $2
-        `, [timestamp, validatedData.booking_id]);
-
-        // Emit payment completed event
-        io.emit('payment_completed', {
-          payment_id: result.rows[0].payment_id,
-          booking_id: validatedData.booking_id,
-          amount: validatedData.amount,
-          currency: validatedData.currency,
-          payment_method: validatedData.payment_method,
-          transaction_id: mockTransactionId,
-          payment_date: timestamp
-        });
-
-        // Emit booking confirmed event
-        io.emit('booking_confirmed', {
-          booking_id: validatedData.booking_id,
-          confirmation_date: timestamp,
-          check_in_instructions: 'Check-in instructions will be sent 24 hours before arrival'
-        });
-      } else {
-        // Emit payment failed event
-        io.emit('payment_failed', {
-          payment_id: result.rows[0].payment_id,
-          booking_id: validatedData.booking_id,
-          amount: validatedData.amount,
-          currency: validatedData.currency,
-          payment_method: validatedData.payment_method,
-          failure_reason: 'Mock payment failure for testing',
-          failed_at: timestamp
-        });
-      }
+      // Update booking payment status to pending initially
+      await client.query(`
+        UPDATE bookings SET payment_status = 'pending', updated_at = $1
+        WHERE booking_id = $2
+      `, [timestamp, validatedData.booking_id]);
 
       res.status(201).json(result.rows[0]);
     } finally {
@@ -2370,8 +2345,8 @@ app.post('/api/conversations', authenticateToken, async (req, res) => {
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9)
         RETURNING *
       `, [
-        conversation_id, validatedData.property_id, validatedData.booking_id, validatedData.guest_id,
-        validatedData.host_id, validatedData.conversation_type, validatedData.subject, timestamp, timestamp
+        conversation_id, validatedData.property_id, validatedData.booking_id || null, validatedData.guest_id,
+        validatedData.host_id, validatedData.conversation_type || 'inquiry', validatedData.subject || null, timestamp, timestamp
       ]);
 
       // Emit conversation started event
