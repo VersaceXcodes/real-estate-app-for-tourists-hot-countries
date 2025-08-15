@@ -119,6 +119,11 @@ const GV_NotificationPanel: React.FC = () => {
     }
   });
 
+  // Dismiss toast notification
+  const dismissToast = useCallback((toastId: string) => {
+    setToastNotifications(prev => prev.filter(toast => toast.id !== toastId));
+  }, []);
+
   // Add toast notification helper
   const addToastNotification = useCallback((
     type: ToastNotification['type'], 
@@ -144,11 +149,6 @@ const GV_NotificationPanel: React.FC = () => {
       }, duration);
     }
   }, [dismissToast]);
-
-  // Dismiss toast notification
-  const dismissToast = useCallback((toastId: string) => {
-    setToastNotifications(prev => prev.filter(toast => toast.id !== toastId));
-  }, []);
 
   // Handle notification click
   const handleNotificationClick = async (notificationId: string) => {

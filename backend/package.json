@@ -9,7 +9,7 @@
     "start": "nodemon --exec \"tsx\" server.ts",
     "build": "tsc",
     "dev": "tsx server.ts",
-    "test": "NODE_ENV=test jest",
+    "test": "NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest",
     "test:watch": "NODE_ENV=test jest --watch",
     "test:coverage": "NODE_ENV=test jest --coverage"
   },

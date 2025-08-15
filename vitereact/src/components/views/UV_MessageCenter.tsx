@@ -273,6 +273,13 @@ const UV_MessageCenter: React.FC = () => {
       : activeConversation.guest;
   }, [activeConversation, currentUser]);
 
+  // Scroll to bottom effect
+  const scrollToBottom = useCallback(() => {
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  }, []);
+
   // WebSocket effects
   useEffect(() => {
     if (!socket || !isConnected) return;
@@ -350,13 +357,6 @@ const UV_MessageCenter: React.FC = () => {
       });
     }
   }, [messagesData?.messages, activeConversationId, currentUser, markReadMutation]);
-
-  // Scroll to bottom effect
-  const scrollToBottom = useCallback(() => {
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
-  }, []);
 
   useEffect(() => {
     scrollToBottom();
