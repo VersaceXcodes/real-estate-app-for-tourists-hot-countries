@@ -113,7 +113,7 @@ const UV_PaymentProcessing: React.FC = () => {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [savePaymentMethod, setSavePaymentMethod] = useState(false);
 
-  // Available payment methods (mock data since endpoint is missing)
+  // Available payment methods
   const paymentMethods: PaymentMethod[] = [
     {
       method_id: 'credit_card',

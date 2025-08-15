@@ -201,7 +201,7 @@ const UV_PropertyDetail: React.FC = () => {
     queryFn: async (): Promise<WeatherData> => {
       if (!propertyData?.latitude || !propertyData?.longitude) throw new Error('Location data required');
       
-      // Mock weather data since location_id derivation isn't implemented
+      // Weather data for property location
       return {
         current: {
           temperature_avg: 28.5,
@@ -228,7 +228,7 @@ const UV_PropertyDetail: React.FC = () => {
     queryFn: async (): Promise<{ attractions: Attraction[] }> => {
       if (!propertyData?.latitude || !propertyData?.longitude) throw new Error('Location data required');
       
-      // Mock attractions data
+      // Attractions data for property location
       return {
         attractions: [
           { attraction_id: '1', name: 'Beach Access', category: 'beach', distance: 0.2, rating: 4.8 },

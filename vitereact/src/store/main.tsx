@@ -403,7 +403,7 @@ export const useAppStore = create<AppStore>()(
 
           const { user, token } = response.data;
 
-          set((_) => ({
+          set(() => ({
             authentication_state: {
               current_user: user,
               auth_token: token,
@@ -430,7 +430,7 @@ export const useAppStore = create<AppStore>()(
         } catch (error: any) {
           const errorMessage = error.response?.data?.message || error.message || 'Login failed';
           
-          set((_) => ({
+          set(() => ({
             authentication_state: {
               current_user: null,
               auth_token: null,
@@ -476,7 +476,7 @@ export const useAppStore = create<AppStore>()(
 
           const { user, token } = response.data;
 
-          set((_) => ({
+          set(() => ({
             authentication_state: {
               current_user: user,
               auth_token: token,
@@ -503,7 +503,7 @@ export const useAppStore = create<AppStore>()(
         } catch (error: any) {
           const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
           
-          set((_) => ({
+          set(() => ({
             authentication_state: {
               current_user: null,
               auth_token: null,
@@ -526,7 +526,7 @@ export const useAppStore = create<AppStore>()(
           socket.disconnect();
         }
 
-        set((_) => ({
+        set(() => ({
           authentication_state: {
             current_user: null,
             auth_token: null,
@@ -584,7 +584,7 @@ export const useAppStore = create<AppStore>()(
 
           const user = response.data;
           
-          set((_) => ({
+          set(() => ({
             authentication_state: {
               current_user: user,
               auth_token: token,
@@ -608,9 +608,9 @@ export const useAppStore = create<AppStore>()(
 
           // Initialize WebSocket connection
           get().initialize_socket();
-        } catch (error) {
+        } catch {
           // Token is invalid, clear auth state
-          set((_) => ({
+          set(() => ({
             authentication_state: {
               current_user: null,
               auth_token: null,
@@ -778,7 +778,7 @@ export const useAppStore = create<AppStore>()(
       },
 
       clear_booking_state: () => {
-        set((_) => ({
+        set(() => ({
           booking_state: {
             current_booking: null,
             booking_step: 1,
@@ -808,7 +808,9 @@ export const useAppStore = create<AppStore>()(
         }));
       },
 
-      add_notification: (_: Notification) => {
+      add_notification: (notification: Notification) => {
+        // TODO: Add notification to state when notifications list is implemented
+        console.log('Adding notification:', notification);
         set((state) => ({
           notifications_state: {
             ...state.notifications_state,
@@ -817,7 +819,9 @@ export const useAppStore = create<AppStore>()(
         }));
       },
 
-      mark_notification_read: (_: string) => {
+      mark_notification_read: (notificationId: string) => {
+        // TODO: Mark specific notification as read when notifications list is implemented
+        console.log('Marking notification as read:', notificationId);
         set((state) => ({
           notifications_state: {
             ...state.notifications_state,
@@ -987,7 +991,7 @@ export const useAppStore = create<AppStore>()(
 
         newSocket.on('connect', () => {
           console.log('WebSocket connected');
-          set((_) => ({ is_connected: true }));
+          set(() => ({ is_connected: true }));
           
           // Authenticate the socket connection
           newSocket.emit('authenticate', authentication_state.auth_token);
@@ -995,7 +999,7 @@ export const useAppStore = create<AppStore>()(
 
         newSocket.on('disconnect', () => {
           console.log('WebSocket disconnected');
-          set((_) => ({ is_connected: false }));
+          set(() => ({ is_connected: false }));
         });
 
         newSocket.on('authenticated', (data) => {
@@ -1059,7 +1063,7 @@ export const useAppStore = create<AppStore>()(
           get().add_system_alert(data);
         });
 
-        set((_) => ({ socket: newSocket }));
+        set(() => ({ socket: newSocket }));
       },
 
       disconnect_socket: () => {
@@ -1067,7 +1071,7 @@ export const useAppStore = create<AppStore>()(
         
         if (socket) {
           socket.disconnect();
-          set((_) => ({ socket: null, is_connected: false }));
+          set(() => ({ socket: null, is_connected: false }));
         }
       },
 

@@ -143,7 +143,7 @@ const GV_NotificationPanel: React.FC = () => {
         dismissToast(id);
       }, duration);
     }
-  }, []);
+  }, [dismissToast]);
 
   // Dismiss toast notification
   const dismissToast = useCallback((toastId: string) => {

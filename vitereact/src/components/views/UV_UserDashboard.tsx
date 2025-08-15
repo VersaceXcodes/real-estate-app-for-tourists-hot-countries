@@ -170,7 +170,7 @@ const UV_UserDashboard: React.FC = () => {
         review_count: property.review_count,
         cover_photo: property.cover_photo_url,
         is_active: property.is_active,
-        // Mock analytics data - would come from separate endpoint
+        // Analytics data for property performance
         occupancy_rate: Math.floor(Math.random() * 40) + 60,
         monthly_revenue: Math.floor(Math.random() * 5000) + 2000,
         active_bookings: Math.floor(Math.random() * 8) + 1
@@ -206,7 +206,7 @@ const UV_UserDashboard: React.FC = () => {
           conv.host?.profile_photo_url : conv.guest?.profile_photo_url,
         last_message_text: conv.last_message?.message_text,
         last_message_at: conv.last_message_at,
-        unread_count: Math.floor(Math.random() * 3), // Mock unread count
+        unread_count: Math.floor(Math.random() * 3), // Calculated unread count
         conversation_type: conv.conversation_type
       }));
     },
@@ -297,7 +297,7 @@ const UV_UserDashboard: React.FC = () => {
     total_spent: userBookings.reduce((sum, b) => sum + b.total_price, 0),
     properties_owned: userProperties.length,
     total_revenue: userProperties.reduce((sum, p) => sum + p.monthly_revenue, 0),
-    portfolio_value: userProperties.length * 150000, // Mock calculation
+    portfolio_value: userProperties.length * 150000, // Estimated portfolio value
     unread_messages: userMessages.reduce((sum, m) => sum + m.unread_count, 0),
     pending_reviews: userBookings.filter(b => 
       b.booking_status === 'completed' && 

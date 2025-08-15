@@ -203,8 +203,8 @@ const UV_Landing: React.FC = () => {
             location_id: destination.location_id,
             current: response.data.current
           };
-        } catch (error) {
-          // Return mock data if weather API fails
+        } catch {
+          // Return fallback data if weather API fails
           return {
             location_id: destination.location_id,
             current: {

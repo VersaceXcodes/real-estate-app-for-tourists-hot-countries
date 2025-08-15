@@ -222,7 +222,7 @@ const UV_MessageCenter: React.FC = () => {
   const filteredConversations = useMemo(() => {
     if (!conversationsData?.conversations) return [];
     
-    let filtered = conversationsData.conversations.filter(conv => {
+    const filtered = conversationsData.conversations.filter(conv => {
       // Search filter
       if (searchQuery) {
         const searchLower = searchQuery.toLowerCase();
@@ -336,7 +336,7 @@ const UV_MessageCenter: React.FC = () => {
         leaveConversation(activeConversationId);
       }
     };
-  }, [socket, isConnected, activeConversationId, currentUser, joinConversation, leaveConversation, queryClient, setUnreadMessages, unreadMessages]);
+  }, [socket, isConnected, activeConversationId, currentUser, joinConversation, leaveConversation, queryClient, setUnreadMessages, unreadMessages, refetchConversations, scrollToBottom]);
 
   // Mark messages as read when viewing conversation
   useEffect(() => {
