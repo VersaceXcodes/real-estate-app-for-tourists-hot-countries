@@ -3823,7 +3823,7 @@ app.use('/api/*', (req, res) => {
 
 // Catch-all route for SPA routing (serves index.html for non-API routes)
 app.get(/^(?!\/api).*/, (req, res) => {
-  res.sendFile(path.join(__dirname, '../vitereact/public', 'index.html'));
+  res.sendFile(path.join(__dirname, '../vitereact/dist', 'index.html'));
 });
 
 // Export for testing
