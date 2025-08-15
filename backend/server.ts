@@ -115,6 +115,7 @@ function createErrorResponse(message, error = null, errorCode = null) {
   const response: any = {
     success: false,
     message,
+    error: message, // Add error field for test compatibility
     timestamp: getCurrentTimestamp()
   };
 
@@ -165,7 +166,7 @@ const authenticateToken = async (req, res, next) => {
     }
   } catch (error) {
     console.error('Authentication error:', error);
-    return res.status(403).json(createErrorResponse('Invalid or expired token', error, 'AUTH_TOKEN_INVALID'));
+    return res.status(401).json(createErrorResponse('Invalid or expired token', error, 'AUTH_TOKEN_INVALID'));
   }
 };
 
@@ -253,7 +254,7 @@ app.post('/api/auth/register', async (req, res) => {
           temperature_unit, notification_settings, emergency_contact_name, emergency_contact_phone,
           address, date_of_birth, government_id_number, is_active, created_at, updated_at
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
-        RETURNING user_id, email, first_name, last_name, phone_number, profile_photo_url, user_type, bio, languages_spoken, is_verified, is_superhost, currency, language, temperature_unit, created_at
+        RETURNING user_id, email, first_name, last_name, phone_number, profile_photo_url, user_type, bio, languages_spoken, is_verified, is_superhost, currency, language, temperature_unit, is_active, created_at
       `, [
         user_id, email.toLowerCase().trim(), password, first_name, last_name, phone_number, profile_photo_url,
         user_type, bio, languages_spoken ? JSON.stringify(languages_spoken) : '[]', false, false, currency, language,
@@ -271,7 +272,11 @@ app.post('/api/auth/register', async (req, res) => {
       );
 
       // Parse JSON fields for response
-      user.languages_spoken = user.languages_spoken ? JSON.parse(user.languages_spoken) : [];
+      try {
+        user.languages_spoken = user.languages_spoken && user.languages_spoken.trim() !== '' && user.languages_spoken !== '[]' ? JSON.parse(user.languages_spoken) : [];
+      } catch (e) {
+        user.languages_spoken = [];
+      }
 
       res.status(201).json({
         user,
@@ -335,8 +340,16 @@ app.post('/api/auth/login', async (req, res) => {
 
       // Remove sensitive data and parse JSON fields
       delete user.password_hash;
-      user.languages_spoken = user.languages_spoken ? JSON.parse(user.languages_spoken) : [];
-      user.notification_settings = user.notification_settings ? JSON.parse(user.notification_settings) : {};
+      try {
+        user.languages_spoken = user.languages_spoken && user.languages_spoken.trim() !== '' && user.languages_spoken !== '[]' ? JSON.parse(user.languages_spoken) : [];
+      } catch (e) {
+        user.languages_spoken = [];
+      }
+      try {
+        user.notification_settings = user.notification_settings && user.notification_settings.trim() !== '' && user.notification_settings !== '{}' ? JSON.parse(user.notification_settings) : {};
+      } catch (e) {
+        user.notification_settings = {};
+      }
 
       res.json({
         user,
@@ -448,8 +461,16 @@ app.get('/api/users/me', authenticateToken, async (req, res) => {
 
       const user = result.rows[0];
       delete user.password_hash;
-      user.languages_spoken = user.languages_spoken ? JSON.parse(user.languages_spoken) : [];
-      user.notification_settings = user.notification_settings ? JSON.parse(user.notification_settings) : {};
+      try {
+        user.languages_spoken = user.languages_spoken && user.languages_spoken.trim() !== '' && user.languages_spoken !== '[]' ? JSON.parse(user.languages_spoken) : [];
+      } catch (e) {
+        user.languages_spoken = [];
+      }
+      try {
+        user.notification_settings = user.notification_settings && user.notification_settings.trim() !== '' && user.notification_settings !== '{}' ? JSON.parse(user.notification_settings) : {};
+      } catch (e) {
+        user.notification_settings = {};
+      }
 
       res.json(user);
     } finally {
@@ -955,21 +976,14 @@ app.get('/api/properties', optionalAuth, async (req, res) => {
       const countResult = await client.query(countQuery, queryParams.slice(0, -2));
 
       // Process results
-      const bookings = result.rows.map(row => ({
+      const properties = result.rows.map(row => ({
         ...row,
-        property: {
-          property_id: row.property_id,
-          title: row.property_title,
-          address: row.property_address,
-          city: row.property_city,
-          country: row.property_country,
-          base_price_per_night: row.base_price_per_night,
-          cover_photo_url: row.property_cover_photo
-        }
+        amenities: row.amenities ? JSON.parse(row.amenities) : [],
+        house_rules: row.house_rules ? JSON.parse(row.house_rules) : []
       }));
 
       res.json({
-        bookings,
+        properties,
         total: parseInt(countResult.rows[0].count)
       });
     } finally {
@@ -977,6 +991,118 @@ app.get('/api/properties', optionalAuth, async (req, res) => {
     }
   } catch (error) {
     console.error('Get bookings error:', error);
+    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
+  }
+});
+
+/*
+  POST /api/properties - Creates new property listing
+*/
+app.post('/api/properties', authenticateToken, async (req, res) => {
+  try {
+    const validatedData = createPropertyInputSchema.parse(req.body);
+    
+    const client = await pool.connect();
+    
+    try {
+      const property_id = generateId();
+      const timestamp = getCurrentTimestamp();
+      
+      // Insert new property
+      const result = await client.query(`
+        INSERT INTO properties (
+          property_id, owner_id, title, description, property_type, country, city, region,
+          neighborhood, address, latitude, longitude, bedrooms, bathrooms, guest_count,
+          property_size, base_price_per_night, cleaning_fee, extra_guest_fee, security_deposit,
+          pet_fee, currency, minimum_stay, maximum_stay, check_in_time, check_out_time,
+          cancellation_policy, house_rules, amenities, instant_booking, distance_beach,
+          distance_airport, is_active, created_at, updated_at
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
+          $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35
+        )
+        RETURNING *
+      `, [
+        property_id, validatedData.owner_id, validatedData.title, validatedData.description,
+        validatedData.property_type, validatedData.country, validatedData.city, validatedData.region,
+        validatedData.neighborhood, validatedData.address, validatedData.latitude, validatedData.longitude,
+        validatedData.bedrooms, validatedData.bathrooms, validatedData.guest_count, validatedData.property_size,
+        validatedData.base_price_per_night, validatedData.cleaning_fee, validatedData.extra_guest_fee,
+        validatedData.security_deposit, validatedData.pet_fee, validatedData.currency, validatedData.minimum_stay,
+        validatedData.maximum_stay, validatedData.check_in_time, validatedData.check_out_time,
+        validatedData.cancellation_policy, JSON.stringify(validatedData.house_rules || []),
+        JSON.stringify(validatedData.amenities || []), validatedData.instant_booking,
+        validatedData.distance_beach, validatedData.distance_airport, true, timestamp, timestamp
+      ]);
+      
+      const property = result.rows[0];
+      property.amenities = property.amenities ? JSON.parse(property.amenities) : [];
+      property.house_rules = property.house_rules ? JSON.parse(property.house_rules) : [];
+      
+      res.status(201).json(property);
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Create property error:', error);
+    if (error.name === 'ZodError') {
+      return res.status(400).json(createErrorResponse('Invalid input data', error, 'VALIDATION_ERROR'));
+    }
+    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
+  }
+});
+
+/*
+  GET /api/properties/:property_id - Get detailed property information
+*/
+app.get('/api/properties/:property_id', async (req, res) => {
+  try {
+    const { property_id } = req.params;
+    const { check_in_date, check_out_date } = req.query;
+    
+    const client = await pool.connect();
+    
+    try {
+      // Get property details with owner information
+      const result = await client.query(`
+        SELECT 
+          p.*,
+          u.first_name, u.last_name, u.is_superhost, u.profile_photo_url as owner_photo,
+          u.languages_spoken as host_language,
+          pp.photo_url as cover_photo_url
+        FROM properties p
+        JOIN users u ON p.owner_id = u.user_id
+        LEFT JOIN property_photos pp ON p.property_id = pp.property_id AND pp.is_cover_photo = true
+        WHERE p.property_id = $1 AND p.is_active = true
+      `, [property_id]);
+      
+      if (result.rows.length === 0) {
+        return res.status(404).json(createErrorResponse('Property not found', null, 'PROPERTY_NOT_FOUND'));
+      }
+      
+      const property = result.rows[0];
+      property.amenities = property.amenities ? JSON.parse(property.amenities) : [];
+      property.house_rules = property.house_rules ? JSON.parse(property.house_rules) : [];
+      property.host_language = property.host_language ? JSON.parse(property.host_language) : [];
+      
+      // If dates provided, include availability and pricing
+      if (check_in_date && check_out_date) {
+        const availabilityResult = await client.query(`
+          SELECT date, is_available, price_per_night
+          FROM property_availability
+          WHERE property_id = $1 AND date >= $2 AND date < $3
+          ORDER BY date
+        `, [property_id, check_in_date, check_out_date]);
+        
+        property.availability = availabilityResult.rows;
+      }
+      
+      res.json(property);
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Get property error:', error);
     res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
   }
 });
@@ -1095,6 +1221,94 @@ app.post('/api/bookings', authenticateToken, async (req, res) => {
     if (error.name === 'ZodError') {
       return res.status(400).json(createErrorResponse('Invalid input data', error, 'VALIDATION_ERROR'));
     }
+    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
+  }
+});
+
+/*
+  GET /api/bookings - Gets user bookings with filtering options
+*/
+app.get('/api/bookings', authenticateToken, async (req, res) => {
+  try {
+    const { guest_id, host_id, booking_status, property_id, limit = 10, offset = 0 } = req.query;
+    
+    const client = await pool.connect();
+    
+    try {
+      let whereConditions = [];
+      let queryParams = [];
+      let paramIndex = 1;
+      
+      // Build WHERE conditions
+      if (guest_id) {
+        whereConditions.push(`b.guest_id = $${paramIndex}`);
+        queryParams.push(guest_id);
+        paramIndex++;
+      }
+      
+      if (host_id) {
+        whereConditions.push(`p.owner_id = $${paramIndex}`);
+        queryParams.push(host_id);
+        paramIndex++;
+      }
+      
+      if (booking_status) {
+        whereConditions.push(`b.booking_status = $${paramIndex}`);
+        queryParams.push(booking_status);
+        paramIndex++;
+      }
+      
+      if (property_id) {
+        whereConditions.push(`b.property_id = $${paramIndex}`);
+        queryParams.push(property_id);
+        paramIndex++;
+      }
+      
+      // Add permission check - users can only see their own bookings
+      if (req.user.user_type !== 'admin') {
+        whereConditions.push(`(b.guest_id = $${paramIndex} OR p.owner_id = $${paramIndex})`);
+        queryParams.push(req.user.user_id);
+        paramIndex++;
+      }
+      
+      const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+      
+      const query = `
+        SELECT 
+          b.*,
+          p.title as property_title, p.address as property_address, p.city as property_city, 
+          p.country as property_country, p.base_price_per_night,
+          u.first_name as guest_first_name, u.last_name as guest_last_name
+        FROM bookings b
+        JOIN properties p ON b.property_id = p.property_id
+        JOIN users u ON b.guest_id = u.user_id
+        ${whereClause}
+        ORDER BY b.created_at DESC
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      `;
+      
+      queryParams.push(parseInt(limit), parseInt(offset));
+      
+      const result = await client.query(query, queryParams);
+      
+      // Get total count
+      const countQuery = `
+        SELECT COUNT(*) FROM bookings b
+        JOIN properties p ON b.property_id = p.property_id
+        JOIN users u ON b.guest_id = u.user_id
+        ${whereClause}
+      `;
+      const countResult = await client.query(countQuery, queryParams.slice(0, -2));
+      
+      res.json({
+        bookings: result.rows,
+        total: parseInt(countResult.rows[0].count)
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Get bookings error:', error);
     res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
   }
 });

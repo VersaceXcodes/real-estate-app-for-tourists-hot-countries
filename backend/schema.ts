@@ -37,20 +37,20 @@ export const createUserInputSchema = z.object({
   password: z.string().min(8).max(100),
   first_name: z.string().min(1).max(255),
   last_name: z.string().min(1).max(255),
-  phone_number: z.string().max(50).nullable(),
-  profile_photo_url: z.string().url().max(500).nullable(),
+  phone_number: z.string().max(50).nullable().optional(),
+  profile_photo_url: z.string().url().max(500).nullable().optional(),
   user_type: z.enum(['guest', 'host', 'admin']).default('guest'),
-  bio: z.string().max(1000).nullable(),
-  languages_spoken: z.array(z.string()).nullable(),
+  bio: z.string().max(1000).nullable().optional(),
+  languages_spoken: z.array(z.string()).nullable().optional(),
   currency: z.string().length(3).default('USD'),
   language: z.string().length(2).default('en'),
   temperature_unit: z.enum(['celsius', 'fahrenheit']).default('celsius'),
   notification_settings: z.record(z.boolean()).default({}),
-  emergency_contact_name: z.string().max(255).nullable(),
-  emergency_contact_phone: z.string().max(50).nullable(),
-  address: z.string().nullable(),
-  date_of_birth: z.string().max(20).nullable(),
-  government_id_number: z.string().max(100).nullable()
+  emergency_contact_name: z.string().max(255).nullable().optional(),
+  emergency_contact_phone: z.string().max(50).nullable().optional(),
+  address: z.string().nullable().optional(),
+  date_of_birth: z.string().max(20).nullable().optional(),
+  government_id_number: z.string().max(100).nullable().optional()
 });
 
 export const updateUserInputSchema = z.object({
