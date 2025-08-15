@@ -294,7 +294,14 @@ export const createBookingInputSchema = z.object({
   adults: z.number().int().min(1).max(100),
   children: z.number().int().min(0).default(0),
   infants: z.number().int().min(0).default(0),
-  special_requests: z.string().max(1000).nullable()
+  special_requests: z.string().max(1000).nullable().optional()
+}).refine((data) => {
+  const checkIn = new Date(data.check_in_date);
+  const checkOut = new Date(data.check_out_date);
+  return checkOut > checkIn;
+}, {
+  message: "Check-out date must be after check-in date",
+  path: ["check_out_date"]
 });
 
 export const updateBookingInputSchema = z.object({
@@ -343,8 +350,7 @@ export const createPaymentInputSchema = z.object({
   amount: z.number().positive(),
   currency: z.string().length(3),
   payment_method: z.enum(['credit_card', 'debit_card', 'paypal', 'bank_transfer']),
-  transaction_id: z.string().max(255).nullable()
-});
+  transaction_id: z.string().max(255).nullable().optional()});
 
 export const updatePaymentInputSchema = z.object({
   payment_id: z.string(),
@@ -469,7 +475,7 @@ export const createMessageInputSchema = z.object({
   conversation_id: z.string(),
   sender_id: z.string(),
   message_text: z.string().min(1).max(5000),
-  attachments: z.array(z.string().url()).max(10).nullable(),
+  attachments: z.array(z.string().url()).max(10).nullable().optional(),
   message_type: z.enum(['text', 'image', 'document']).default('text'),
   is_automated: z.boolean().default(false)
 });

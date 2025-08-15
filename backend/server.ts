@@ -1487,9 +1487,10 @@ app.put('/api/properties/:property_id/availability', authenticateToken, async (r
       
       // Update availability for each date
       for (const avail of availabilityData) {
+        const availability_id = generateId();
         await client.query(`
-          INSERT INTO property_availability (property_id, date, is_available, price_per_night, is_blocked, updated_at)
-          VALUES ($1, $2, $3, $4, $5, $6)
+          INSERT INTO property_availability (availability_id, property_id, date, is_available, price_per_night, is_blocked, created_at, updated_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
           ON CONFLICT (property_id, date) 
           DO UPDATE SET 
             is_available = EXCLUDED.is_available,
@@ -1497,8 +1498,8 @@ app.put('/api/properties/:property_id/availability', authenticateToken, async (r
             is_blocked = EXCLUDED.is_blocked,
             updated_at = EXCLUDED.updated_at
         `, [
-          property_id, avail.date, avail.is_available, avail.price_per_night || null, 
-          avail.is_blocked || false, getCurrentTimestamp()
+          availability_id, property_id, avail.date, avail.is_available, avail.price_per_night || null, 
+          avail.is_blocked || false, getCurrentTimestamp(), getCurrentTimestamp()
         ]);
       }
       
@@ -1563,14 +1564,14 @@ app.post('/api/bookings', authenticateToken, async (req, res) => {
         return res.status(400).json(createErrorResponse(`Maximum stay is ${property.maximum_stay} nights`, null, 'MAXIMUM_STAY_EXCEEDED'));
       }
 
-      const basePrice = property.base_price_per_night * nights;
-      const cleaningFee = property.cleaning_fee || 0;
-      const serviceFee = basePrice * 0.1; // 10% service fee
-      const taxesAndFees = basePrice * 0.06; // 6% taxes
+      const basePrice = Math.round((property.base_price_per_night * nights) * 100) / 100;
+      const cleaningFee = Math.round((property.cleaning_fee || 0) * 100) / 100;
+      const serviceFee = Math.round((basePrice * 0.1) * 100) / 100; // 10% service fee
+      const taxesAndFees = Math.round((basePrice * 0.06) * 100) / 100; // 6% taxes
       const extraGuestFee = validatedData.guest_count > property.guest_count ? 
-        (validatedData.guest_count - property.guest_count) * (property.extra_guest_fee || 0) * nights : 0;
+        Math.round(((validatedData.guest_count - property.guest_count) * (property.extra_guest_fee || 0) * nights) * 100) / 100 : 0;
       
-      const totalPrice = basePrice + cleaningFee + serviceFee + taxesAndFees + extraGuestFee;
+      const totalPrice = Math.round((basePrice + cleaningFee + serviceFee + taxesAndFees + extraGuestFee) * 100) / 100;
 
       // Create booking
       const booking_id = generateId();
@@ -1587,7 +1588,7 @@ app.post('/api/bookings', authenticateToken, async (req, res) => {
         booking_id, validatedData.property_id, validatedData.guest_id, validatedData.check_in_date,
         validatedData.check_out_date, validatedData.guest_count, validatedData.adults, validatedData.children,
         validatedData.infants, nights, basePrice, cleaningFee, serviceFee, taxesAndFees, totalPrice,
-        property.currency, validatedData.special_requests, 'pending', 'pending', timestamp, timestamp
+        property.currency, validatedData.special_requests || null, 'pending', 'pending', timestamp, timestamp
       ]);
 
       const booking = result.rows[0];
@@ -2581,7 +2582,7 @@ app.post('/api/messages', authenticateToken, async (req, res) => {
       `, [
         message_id, validatedData.conversation_id, validatedData.sender_id, validatedData.message_text,
         validatedData.attachments ? JSON.stringify(validatedData.attachments) : '[]',
-        validatedData.message_type, validatedData.is_automated, timestamp
+        validatedData.message_type || 'text', validatedData.is_automated || false, timestamp
       ]);
 
       // Update conversation last_message_at
@@ -4281,7 +4282,10 @@ app.get('/api/properties/:property_id/analytics', authenticateToken, async (req,
       
       // Mock analytics data for development
       const mockAnalytics = {
+        analytics_id: generateId(),
         property_id,
+        rental_yield: 8.5,
+        occupancy_rate: 0.75,
         revenue_analysis: {
           monthly_revenue: 3500,
           yearly_projection: 42000,
