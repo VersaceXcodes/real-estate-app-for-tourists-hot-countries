@@ -114,6 +114,7 @@ interface CreatePropertyPayload {
   instant_booking?: boolean;
   host_language?: string[];
   cancellation_policy?: 'flexible' | 'moderate' | 'strict';
+  is_active?: boolean;
 }
 
 interface UpdatePropertyPayload {
@@ -167,7 +168,7 @@ const UV_PropertyManagement: React.FC = () => {
   const setOwnedProperties = useAppStore(state => state.set_owned_properties);
   const addOwnedProperty = useAppStore(state => state.add_owned_property);
   const updateOwnedProperty = useAppStore(state => state.update_owned_property);
-  const setPropertyManagementLoading = useAppStore(state => state.set_property_management_loading);
+
 
   // Local state for forms
   const [createMode, setCreateMode] = useState(false);

@@ -9,10 +9,7 @@ import GV_TopNav from '@/components/views/GV_TopNav';
 import GV_Footer from '@/components/views/GV_Footer';
 import GV_MobileNav from '@/components/views/GV_MobileNav';
 import GV_NotificationPanel from '@/components/views/GV_NotificationPanel';
-import GV_WeatherWidget from '@/components/views/GV_WeatherWidget';
-import GV_CurrencySelector from '@/components/views/GV_CurrencySelector';
-import GV_LanguageSelector from '@/components/views/GV_LanguageSelector';
-import GV_SearchBar from '@/components/views/GV_SearchBar';
+
 import UV_Landing from '@/components/views/UV_Landing';
 import UV_SearchResults from '@/components/views/UV_SearchResults';
 import UV_PropertyDetail from '@/components/views/UV_PropertyDetail';

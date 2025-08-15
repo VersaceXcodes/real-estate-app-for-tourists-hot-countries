@@ -61,7 +61,7 @@ const UV_Landing: React.FC = () => {
   const currentUser = useAppStore(state => state.authentication_state.current_user);
   const authToken = useAppStore(state => state.authentication_state.auth_token);
   const currency = useAppStore(state => state.user_preferences.currency);
-  const language = useAppStore(state => state.user_preferences.language);
+  
   const updateSearchCriteria = useAppStore(state => state.update_search_criteria);
 
   // Local state for search form

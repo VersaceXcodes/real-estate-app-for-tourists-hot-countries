@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAppStore } from '@/store/main';
@@ -123,7 +123,7 @@ const GV_SearchBar: React.FC = () => {
   const currentUser = useAppStore(state => state.authentication_state.current_user);
   const authToken = useAppStore(state => state.authentication_state.auth_token);
   const globalSearchState = useAppStore(state => state.search_state);
-  const currency = useAppStore(state => state.user_preferences.currency);
+
   const updateSearchCriteria = useAppStore(state => state.update_search_criteria);
   
   // Local state
@@ -205,7 +205,7 @@ const GV_SearchBar: React.FC = () => {
 
   // Validation
   const validateDates = useCallback(() => {
-    const errors = { check_in: null, check_out: null, date_range: null };
+    const errors: { check_in: string | null; check_out: string | null; date_range: string | null } = { check_in: null, check_out: null, date_range: null };
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
