@@ -1632,7 +1632,7 @@ app.get('/api/conversations', authenticateToken, async (req, res) => {
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
 
-      queryParams.push(parseInt(limit), parseInt(offset));
+      queryParams.push(String(limit), String(offset));
 
       const result = await client.query(conversationsQuery, queryParams);
 
@@ -1889,7 +1889,7 @@ app.get('/api/conversations/:conversation_id/messages', authenticateToken, async
       }
 
       messagesQuery += ` ORDER BY m.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-      queryParams.push(parseInt(limit), parseInt(offset));
+      queryParams.push(String(limit), String(offset));
 
       const result = await client.query(messagesQuery, queryParams);
 
@@ -2154,7 +2154,7 @@ app.get('/api/locations', async (req, res) => {
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
 
-      queryParams.push(parseInt(limit), parseInt(offset));
+      queryParams.push(String(limit), String(offset));
 
       const result = await client.query(locationsQuery, queryParams);
 
@@ -2256,7 +2256,7 @@ app.get('/api/locations/:location_id/weather', async (req, res) => {
       };
 
       const mockForecast = [];
-      for (let i = 0; i < parseInt(forecast_days); i++) {
+      for (let i = 0; i < parseInt(String(forecast_days)); i++) {
         const date = new Date();
         date.setDate(date.getDate() + i);
         mockForecast.push({
@@ -2308,12 +2308,12 @@ app.get('/api/locations/:location_id/attractions', async (req, res) => {
     
     try {
       let whereConditions = [`location_id = $1`];
-      let queryParams = [location_id];
+      let queryParams: any[] = [location_id];
       let paramIndex = 2;
 
       if (category) {
         whereConditions.push(`category = $${paramIndex}`);
-        queryParams.push(category);
+        queryParams.push(String(category));
         paramIndex++;
       }
 
@@ -2330,7 +2330,7 @@ app.get('/api/locations/:location_id/attractions', async (req, res) => {
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
 
-      queryParams.push(parseInt(limit), parseInt(offset));
+      queryParams.push(String(limit), String(offset));
 
       const result = await client.query(attractionsQuery, queryParams);
 
@@ -2382,7 +2382,7 @@ app.get('/api/properties/:property_id/reviews', async (req, res) => {
 
       if (min_rating) {
         whereConditions.push(`r.overall_rating >= $${paramIndex}`);
-        queryParams.push(parseInt(min_rating));
+        queryParams.push(String(min_rating));
         paramIndex++;
       }
 
@@ -2408,7 +2408,7 @@ app.get('/api/properties/:property_id/reviews', async (req, res) => {
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
 
-      queryParams.push(parseInt(limit), parseInt(offset));
+      queryParams.push(String(limit), String(offset));
 
       const result = await client.query(reviewsQuery, queryParams);
 
@@ -2847,7 +2847,7 @@ app.get('/api/currency-rates', async (req, res) => {
       }
     };
 
-    const baseRates = mockRates[base_currency] || mockRates['USD'];
+    const baseRates = mockRates[String(base_currency)] || mockRates['USD'];
     let rates = baseRates;
 
     if (target_currencies) {
@@ -2921,7 +2921,7 @@ app.get('/api/system-alerts', async (req, res) => {
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
 
-      queryParams.push(parseInt(limit), parseInt(offset));
+      queryParams.push(String(limit), String(offset));
 
       const result = await client.query(alertsQuery, queryParams);
 
@@ -2996,7 +2996,7 @@ app.get('/api/market-data', authenticateToken, async (req, res) => {
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
 
-      queryParams.push(parseInt(limit), parseInt(offset));
+      queryParams.push(String(limit), String(offset));
 
       const result = await client.query(marketQuery, queryParams);
 
