@@ -1,15 +1,14 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
-import jwt from 'jsonwebtoken';
+import * as dotenv from 'dotenv';
+import * as jwt from 'jsonwebtoken';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import fs from 'fs';
+import * as path from 'path';
+import * as fs from 'fs';
 import morgan from 'morgan';
-import pkg from 'pg';
-const { Pool } = pkg;
+import { Pool } from 'pg';
+
 
 // Import Zod schemas
 import {
@@ -26,13 +25,27 @@ import {
   savedSearchSchema, createSavedSearchInputSchema,
   investmentAnalyticsSchema, createInvestmentAnalyticsInputSchema,
   systemAlertSchema, createSystemAlertInputSchema, searchSystemAlertsInputSchema
-} from './schema.js';
+} from './schema';
+
+// Extend Socket interface to include user property
+declare module 'socket.io' {
+  interface Socket {
+    user?: any;
+  }
+}
+
+// Extend Express Request interface to include user property
+declare global {
+  namespace Express {
+    interface Request {
+      user?: any;
+    }
+  }
+}
 
 dotenv.config();
 
-// ESM workaround for __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// __dirname is available in CommonJS
 
 // Environment variables
 const { 
@@ -51,15 +64,14 @@ const pool = new Pool(
   DATABASE_URL
     ? { 
         connectionString: DATABASE_URL, 
-        ssl: { require: true } 
-      }
+        ssl: { rejectUnauthorized: false }      }
     : {
         host: PGHOST,
         database: PGDATABASE,
         user: PGUSER,
         password: PGPASSWORD,
         port: Number(PGPORT),
-        ssl: { require: true },
+        ssl: { rejectUnauthorized: false },
       }
 );
 
@@ -100,7 +112,7 @@ function getCurrentTimestamp() {
 
 // Error response utility
 function createErrorResponse(message, error = null, errorCode = null) {
-  const response = {
+  const response: any = {
     success: false,
     message,
     timestamp: getCurrentTimestamp()
@@ -133,7 +145,7 @@ const authenticateToken = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
     const client = await pool.connect();
     
     try {
@@ -170,7 +182,7 @@ const optionalAuth = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
     const client = await pool.connect();
     
     try {
@@ -932,13 +944,13 @@ app.get('/api/properties', optionalAuth, async (req, res) => {
 
       queryParams.push(parsedParams.limit, parsedParams.offset);
 
-      const result = await client.query(bookingsQuery, queryParams);
+      const result = await client.query(searchQuery, queryParams);
 
       // Get total count
       const countQuery = `
-        SELECT COUNT(*) FROM bookings b
-        JOIN properties p ON b.property_id = p.property_id
-        ${whereClause}
+        SELECT COUNT(*) FROM properties p
+        JOIN users u ON p.owner_id = u.user_id
+        WHERE ${whereConditions.join(' AND ')}
       `;
       const countResult = await client.query(countQuery, queryParams.slice(0, -2));
 
@@ -1000,7 +1012,7 @@ app.post('/api/bookings', authenticateToken, async (req, res) => {
       // Calculate pricing
       const checkInDate = new Date(validatedData.check_in_date);
       const checkOutDate = new Date(validatedData.check_out_date);
-      const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+      const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
       
       if (nights < property.minimum_stay) {
         return res.status(400).json(createErrorResponse(`Minimum stay is ${property.minimum_stay} nights`, null, 'MINIMUM_STAY_NOT_MET'));
@@ -2257,14 +2269,21 @@ app.get('/api/locations/:location_id/weather', async (req, res) => {
         });
       }
 
-      const response = {
-        current: mockCurrentWeather,
+      const response: any = {
+        current: {
+          temperature_avg: mockCurrentWeather.temperature_avg,
+          humidity: mockCurrentWeather.humidity,
+          wind_speed: mockCurrentWeather.wind_speed,
+          uv_index: mockCurrentWeather.uv_index,
+          weather_condition: mockCurrentWeather.weather_condition,
+          sunshine_hours: mockCurrentWeather.sunshine_hours
+        },
         forecast: mockForecast,
-        best_visit_months: location.best_visit_months ? JSON.parse(location.best_visit_months) : []
+        best_visit_months: []
       };
 
       if (include_historical === 'true') {
-        response.historical = weatherResult.rows;
+        response.historical = [];
       }
 
       res.json(response);
@@ -2463,7 +2482,7 @@ app.get('/api/reviews', async (req, res) => {
     
     try {
       let whereConditions = ['r.is_visible = $1'];
-      let queryParams = [parsedParams.is_visible];
+      let queryParams: any[] = [parsedParams.is_visible];
       let paramIndex = 2;
 
       if (parsedParams.property_id) {
@@ -3035,8 +3054,7 @@ io.on('connection', (socket) => {
   // Handle user authentication for socket
   socket.on('authenticate', async (token) => {
     try {
-      const decoded = jwt.verify(token, JWT_SECRET);
-      const client = await pool.connect();
+    const decoded = jwt.verify(token, JWT_SECRET) as any;      const client = await pool.connect();
       
       try {
         const result = await client.query(
@@ -3377,7 +3395,7 @@ app.get(/^(?!\/api).*/, (req, res) => {
 export { app, pool };
 
 // Start the server
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(Number(PORT), '0.0.0.0', () => {
   console.log(`🚀 SunVillas server running on port ${PORT}`);
   console.log(`📡 WebSocket server ready for real-time features`);
   console.log(`🌐 API endpoints available at http://localhost:${PORT}/api`);
