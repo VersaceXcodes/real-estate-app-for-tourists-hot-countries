@@ -21,7 +21,7 @@ RUN npm install --production
 # Copy the backend files
 COPY backend ./
 # Copy the frontend build output to a directory served by the backend
-COPY --from=frontend-build /app/vitereact/public /app/backend/public
+COPY --from=frontend-build /app/vitereact/dist /app/backend/dist
 # Expose the port the backend will run on
 EXPOSE 3000
 # Set environment variables
