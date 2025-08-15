@@ -1,0 +1,1465 @@
+asyncapi: 2.0.0
+info:
+  title: SunVillas Real Estate Platform - Realtime Events API
+  version: 1.0.0
+  description: AsyncAPI specification for real-time events in the SunVillas
+    platform for vacation rentals and property investment in hot climate
+    destinations
+servers:
+  development:
+    url: ws://localhost:3000
+    protocol: ws
+    description: Development WebSocket server
+channels:
+  user/authentication:
+    description: User authentication status updates
+    subscribe:
+      operationId: handleUserAuthenticationEvents
+      message:
+        oneOf:
+          - $ref: "#/components/messages/UserLoggedIn"
+          - $ref: "#/components/messages/UserLoggedOut"
+          - $ref: "#/components/messages/UserStatusChanged"
+  user/{user_id}/notifications:
+    description: User-specific notifications
+    parameters:
+      user_id:
+        description: User identifier
+        schema:
+          type: string
+    subscribe:
+      operationId: handleUserNotifications
+      message:
+        oneOf:
+          - $ref: "#/components/messages/NotificationSent"
+          - $ref: "#/components/messages/SystemAlertCreated"
+  conversations/{conversation_id}/messages:
+    description: Real-time messaging between users
+    parameters:
+      conversation_id:
+        description: Conversation identifier
+        schema:
+          type: string
+    subscribe:
+      operationId: handleConversationMessages
+      message:
+        oneOf:
+          - $ref: "#/components/messages/MessageSent"
+          - $ref: "#/components/messages/MessageReceived"
+          - $ref: "#/components/messages/MessageRead"
+          - $ref: "#/components/messages/TypingIndicator"
+    publish:
+      operationId: sendMessage
+      message:
+        $ref: "#/components/messages/SendMessage"
+  conversations:
+    description: Conversation management events
+    subscribe:
+      operationId: handleConversationEvents
+      message:
+        oneOf:
+          - $ref: "#/components/messages/ConversationStarted"
+          - $ref: "#/components/messages/ConversationUpdated"
+  bookings/{booking_id}/status:
+    description: Booking status updates
+    parameters:
+      booking_id:
+        description: Booking identifier
+        schema:
+          type: string
+    subscribe:
+      operationId: handleBookingStatusUpdates
+      message:
+        oneOf:
+          - $ref: "#/components/messages/BookingCreated"
+          - $ref: "#/components/messages/BookingConfirmed"
+          - $ref: "#/components/messages/BookingCancelled"
+          - $ref: "#/components/messages/BookingModified"
+  payments/{payment_id}/status:
+    description: Payment processing updates
+    parameters:
+      payment_id:
+        description: Payment identifier
+        schema:
+          type: string
+    subscribe:
+      operationId: handlePaymentUpdates
+      message:
+        oneOf:
+          - $ref: "#/components/messages/PaymentCompleted"
+          - $ref: "#/components/messages/PaymentFailed"
+          - $ref: "#/components/messages/PaymentRefunded"
+  properties/{property_id}/availability:
+    description: Property availability updates
+    parameters:
+      property_id:
+        description: Property identifier
+        schema:
+          type: string
+    subscribe:
+      operationId: handlePropertyAvailability
+      message:
+        $ref: "#/components/messages/PropertyAvailabilityUpdated"
+  properties/{property_id}/pricing:
+    description: Property pricing updates
+    parameters:
+      property_id:
+        description: Property identifier
+        schema:
+          type: string
+    subscribe:
+      operationId: handlePropertyPricing
+      message:
+        $ref: "#/components/messages/PropertyPricingUpdated"
+  properties/{property_id}/management:
+    description: Property management updates for hosts
+    parameters:
+      property_id:
+        description: Property identifier
+        schema:
+          type: string
+    subscribe:
+      operationId: handlePropertyManagement
+      message:
+        oneOf:
+          - $ref: "#/components/messages/PropertyUpdated"
+          - $ref: "#/components/messages/PropertyCalendarUpdated"
+          - $ref: "#/components/messages/PropertyAnalyticsUpdated"
+  properties:
+    description: Global property events
+    subscribe:
+      operationId: handlePropertyEvents
+      message:
+        oneOf:
+          - $ref: "#/components/messages/PropertyCreated"
+          - $ref: "#/components/messages/PropertyStatusChanged"
+  reviews/{property_id}:
+    description: Review events for properties
+    parameters:
+      property_id:
+        description: Property identifier
+        schema:
+          type: string
+    subscribe:
+      operationId: handleReviewEvents
+      message:
+        oneOf:
+          - $ref: "#/components/messages/ReviewSubmitted"
+          - $ref: "#/components/messages/ReviewResponseAdded"
+          - $ref: "#/components/messages/ReviewUpdated"
+  search/results:
+    description: Search result updates
+    subscribe:
+      operationId: handleSearchUpdates
+      message:
+        oneOf:
+          - $ref: "#/components/messages/SearchResultsUpdated"
+          - $ref: "#/components/messages/SavedSearchMatch"
+  weather/{location_id}:
+    description: Weather data updates for locations
+    parameters:
+      location_id:
+        description: Location identifier
+        schema:
+          type: string
+    subscribe:
+      operationId: handleWeatherUpdates
+      message:
+        oneOf:
+          - $ref: "#/components/messages/WeatherDataUpdated"
+          - $ref: "#/components/messages/WeatherAlertIssued"
+  investments/{user_id}/analytics:
+    description: Investment analytics updates
+    parameters:
+      user_id:
+        description: User identifier
+        schema:
+          type: string
+    subscribe:
+      operationId: handleInvestmentAnalytics
+      message:
+        oneOf:
+          - $ref: "#/components/messages/InvestmentAnalyticsUpdated"
+          - $ref: "#/components/messages/MarketDataUpdated"
+          - $ref: "#/components/messages/PortfolioValueChanged"
+  system/alerts:
+    description: System-wide alerts and announcements
+    subscribe:
+      operationId: handleSystemAlerts
+      message:
+        oneOf:
+          - $ref: "#/components/messages/SystemMaintenanceAlert"
+          - $ref: "#/components/messages/EmergencyAlert"
+          - $ref: "#/components/messages/ServiceStatusUpdate"
+  user/{user_id}/presence:
+    description: User presence and activity status
+    parameters:
+      user_id:
+        description: User identifier
+        schema:
+          type: string
+    subscribe:
+      operationId: handleUserPresence
+      message:
+        oneOf:
+          - $ref: "#/components/messages/UserOnline"
+          - $ref: "#/components/messages/UserOffline"
+          - $ref: "#/components/messages/UserActivityUpdate"
+components:
+  messages:
+    UserLoggedIn:
+      payload:
+        type: object
+        required:
+          - user_id
+          - email
+          - user_type
+          - timestamp
+        properties:
+          user_id:
+            type: string
+          email:
+            type: string
+          user_type:
+            type: string
+            enum:
+              - guest
+              - host
+              - admin
+          is_verified:
+            type: boolean
+          is_superhost:
+            type: boolean
+          timestamp:
+            type: string
+    UserLoggedOut:
+      payload:
+        type: object
+        required:
+          - user_id
+          - timestamp
+        properties:
+          user_id:
+            type: string
+          timestamp:
+            type: string
+    UserStatusChanged:
+      payload:
+        type: object
+        required:
+          - user_id
+          - status
+          - timestamp
+        properties:
+          user_id:
+            type: string
+          status:
+            type: string
+            enum:
+              - active
+              - inactive
+              - suspended
+          timestamp:
+            type: string
+    NotificationSent:
+      payload:
+        type: object
+        required:
+          - notification_id
+          - user_id
+          - notification_type
+          - title
+          - message
+          - priority
+          - created_at
+        properties:
+          notification_id:
+            type: string
+          user_id:
+            type: string
+          notification_type:
+            type: string
+          title:
+            type: string
+          message:
+            type: string
+          data:
+            type: object
+          priority:
+            type: string
+            enum:
+              - low
+              - normal
+              - high
+          expires_at:
+            type: string
+          created_at:
+            type: string
+    SystemAlertCreated:
+      payload:
+        type: object
+        required:
+          - alert_id
+          - alert_type
+          - title
+          - message
+          - severity
+          - is_active
+          - created_at
+        properties:
+          alert_id:
+            type: string
+          alert_type:
+            type: string
+          title:
+            type: string
+          message:
+            type: string
+          severity:
+            type: string
+            enum:
+              - info
+              - low
+              - medium
+              - high
+              - critical
+          affected_locations:
+            type: array
+            items:
+              type: string
+          is_active:
+            type: boolean
+          starts_at:
+            type: string
+          ends_at:
+            type: string
+          created_at:
+            type: string
+    MessageSent:
+      payload:
+        type: object
+        required:
+          - message_id
+          - conversation_id
+          - sender_id
+          - message_text
+          - message_type
+          - created_at
+        properties:
+          message_id:
+            type: string
+          conversation_id:
+            type: string
+          sender_id:
+            type: string
+          message_text:
+            type: string
+          attachments:
+            type: array
+            items:
+              type: string
+          message_type:
+            type: string
+            enum:
+              - text
+              - image
+              - document
+          is_automated:
+            type: boolean
+          created_at:
+            type: string
+    MessageReceived:
+      payload:
+        type: object
+        required:
+          - message_id
+          - conversation_id
+          - sender_id
+          - recipient_id
+          - message_text
+          - created_at
+        properties:
+          message_id:
+            type: string
+          conversation_id:
+            type: string
+          sender_id:
+            type: string
+          recipient_id:
+            type: string
+          message_text:
+            type: string
+          attachments:
+            type: array
+            items:
+              type: string
+          message_type:
+            type: string
+            enum:
+              - text
+              - image
+              - document
+          created_at:
+            type: string
+    MessageRead:
+      payload:
+        type: object
+        required:
+          - message_id
+          - conversation_id
+          - reader_id
+          - read_at
+        properties:
+          message_id:
+            type: string
+          conversation_id:
+            type: string
+          reader_id:
+            type: string
+          read_at:
+            type: string
+    TypingIndicator:
+      payload:
+        type: object
+        required:
+          - conversation_id
+          - user_id
+          - is_typing
+        properties:
+          conversation_id:
+            type: string
+          user_id:
+            type: string
+          is_typing:
+            type: boolean
+          timestamp:
+            type: string
+    SendMessage:
+      payload:
+        type: object
+        required:
+          - conversation_id
+          - sender_id
+          - message_text
+        properties:
+          conversation_id:
+            type: string
+          sender_id:
+            type: string
+          message_text:
+            type: string
+          attachments:
+            type: array
+            items:
+              type: string
+          message_type:
+            type: string
+            enum:
+              - text
+              - image
+              - document
+            default: text
+    ConversationStarted:
+      payload:
+        type: object
+        required:
+          - conversation_id
+          - property_id
+          - guest_id
+          - host_id
+          - conversation_type
+          - created_at
+        properties:
+          conversation_id:
+            type: string
+          property_id:
+            type: string
+          booking_id:
+            type: string
+          guest_id:
+            type: string
+          host_id:
+            type: string
+          conversation_type:
+            type: string
+            enum:
+              - inquiry
+              - booking
+              - support
+          subject:
+            type: string
+          created_at:
+            type: string
+    ConversationUpdated:
+      payload:
+        type: object
+        required:
+          - conversation_id
+          - last_message_at
+          - updated_at
+        properties:
+          conversation_id:
+            type: string
+          subject:
+            type: string
+          is_active:
+            type: boolean
+          last_message_at:
+            type: string
+          updated_at:
+            type: string
+    BookingCreated:
+      payload:
+        type: object
+        required:
+          - booking_id
+          - property_id
+          - guest_id
+          - check_in_date
+          - check_out_date
+          - total_price
+          - currency
+          - booking_status
+          - created_at
+        properties:
+          booking_id:
+            type: string
+          property_id:
+            type: string
+          guest_id:
+            type: string
+          check_in_date:
+            type: string
+          check_out_date:
+            type: string
+          guest_count:
+            type: number
+          adults:
+            type: number
+          children:
+            type: number
+          infants:
+            type: number
+          nights:
+            type: number
+          base_price:
+            type: number
+          cleaning_fee:
+            type: number
+          service_fee:
+            type: number
+          taxes_and_fees:
+            type: number
+          total_price:
+            type: number
+          currency:
+            type: string
+          special_requests:
+            type: string
+          booking_status:
+            type: string
+            enum:
+              - pending
+              - confirmed
+              - cancelled
+              - completed
+          payment_status:
+            type: string
+            enum:
+              - pending
+              - completed
+              - failed
+              - refunded
+          created_at:
+            type: string
+    BookingConfirmed:
+      payload:
+        type: object
+        required:
+          - booking_id
+          - confirmation_date
+          - check_in_instructions
+        properties:
+          booking_id:
+            type: string
+          confirmation_date:
+            type: string
+          check_in_instructions:
+            type: string
+          access_code:
+            type: string
+    BookingCancelled:
+      payload:
+        type: object
+        required:
+          - booking_id
+          - cancellation_reason
+          - cancelled_at
+          - refund_amount
+        properties:
+          booking_id:
+            type: string
+          cancellation_reason:
+            type: string
+          cancelled_at:
+            type: string
+          refund_amount:
+            type: number
+          refund_date:
+            type: string
+    BookingModified:
+      payload:
+        type: object
+        required:
+          - booking_id
+          - modification_type
+          - updated_at
+        properties:
+          booking_id:
+            type: string
+          modification_type:
+            type: string
+          old_check_in_date:
+            type: string
+          new_check_in_date:
+            type: string
+          old_check_out_date:
+            type: string
+          new_check_out_date:
+            type: string
+          old_guest_count:
+            type: number
+          new_guest_count:
+            type: number
+          old_total_price:
+            type: number
+          new_total_price:
+            type: number
+          price_difference:
+            type: number
+          updated_at:
+            type: string
+    PaymentCompleted:
+      payload:
+        type: object
+        required:
+          - payment_id
+          - booking_id
+          - amount
+          - currency
+          - payment_method
+          - transaction_id
+          - payment_date
+        properties:
+          payment_id:
+            type: string
+          booking_id:
+            type: string
+          amount:
+            type: number
+          currency:
+            type: string
+          payment_method:
+            type: string
+            enum:
+              - credit_card
+              - debit_card
+              - paypal
+              - bank_transfer
+          transaction_id:
+            type: string
+          payment_date:
+            type: string
+    PaymentFailed:
+      payload:
+        type: object
+        required:
+          - payment_id
+          - booking_id
+          - amount
+          - currency
+          - failure_reason
+          - failed_at
+        properties:
+          payment_id:
+            type: string
+          booking_id:
+            type: string
+          amount:
+            type: number
+          currency:
+            type: string
+          payment_method:
+            type: string
+            enum:
+              - credit_card
+              - debit_card
+              - paypal
+              - bank_transfer
+          failure_reason:
+            type: string
+          failed_at:
+            type: string
+    PaymentRefunded:
+      payload:
+        type: object
+        required:
+          - payment_id
+          - booking_id
+          - refund_amount
+          - refund_date
+        properties:
+          payment_id:
+            type: string
+          booking_id:
+            type: string
+          refund_amount:
+            type: number
+          refund_date:
+            type: string
+    PropertyAvailabilityUpdated:
+      payload:
+        type: object
+        required:
+          - property_id
+          - date
+          - is_available
+          - updated_at
+        properties:
+          property_id:
+            type: string
+          date:
+            type: string
+          is_available:
+            type: boolean
+          price_per_night:
+            type: number
+          minimum_stay:
+            type: number
+          is_blocked:
+            type: boolean
+          block_reason:
+            type: string
+          updated_at:
+            type: string
+    PropertyPricingUpdated:
+      payload:
+        type: object
+        required:
+          - property_id
+          - pricing_changes
+          - updated_at
+        properties:
+          property_id:
+            type: string
+          base_price_per_night:
+            type: number
+          cleaning_fee:
+            type: number
+          security_deposit:
+            type: number
+          extra_guest_fee:
+            type: number
+          pet_fee:
+            type: number
+          seasonal_rates:
+            type: object
+          pricing_changes:
+            type: array
+            items:
+              type: object
+              properties:
+                date_range:
+                  type: object
+                  properties:
+                    start_date:
+                      type: string
+                    end_date:
+                      type: string
+                price_per_night:
+                  type: number
+          updated_at:
+            type: string
+    PropertyCreated:
+      payload:
+        type: object
+        required:
+          - property_id
+          - owner_id
+          - title
+          - country
+          - city
+          - property_type
+          - created_at
+        properties:
+          property_id:
+            type: string
+          owner_id:
+            type: string
+          title:
+            type: string
+          description:
+            type: string
+          property_type:
+            type: string
+          country:
+            type: string
+          city:
+            type: string
+          region:
+            type: string
+          neighborhood:
+            type: string
+          address:
+            type: string
+          latitude:
+            type: number
+          longitude:
+            type: number
+          bedrooms:
+            type: number
+          bathrooms:
+            type: number
+          guest_count:
+            type: number
+          base_price_per_night:
+            type: number
+          currency:
+            type: string
+          amenities:
+            type: array
+            items:
+              type: string
+          instant_booking:
+            type: boolean
+          created_at:
+            type: string
+    PropertyUpdated:
+      payload:
+        type: object
+        required:
+          - property_id
+          - updated_fields
+          - updated_at
+        properties:
+          property_id:
+            type: string
+          title:
+            type: string
+          description:
+            type: string
+          amenities:
+            type: array
+            items:
+              type: string
+          house_rules:
+            type: array
+            items:
+              type: string
+          check_in_time:
+            type: string
+          check_out_time:
+            type: string
+          minimum_stay:
+            type: number
+          maximum_stay:
+            type: number
+          instant_booking:
+            type: boolean
+          cancellation_policy:
+            type: string
+            enum:
+              - flexible
+              - moderate
+              - strict
+          is_active:
+            type: boolean
+          updated_fields:
+            type: array
+            items:
+              type: string
+          updated_at:
+            type: string
+    PropertyStatusChanged:
+      payload:
+        type: object
+        required:
+          - property_id
+          - status_change
+          - updated_at
+        properties:
+          property_id:
+            type: string
+          is_active:
+            type: boolean
+          is_verified:
+            type: boolean
+          verification_status:
+            type: string
+          status_change:
+            type: string
+          updated_at:
+            type: string
+    PropertyCalendarUpdated:
+      payload:
+        type: object
+        required:
+          - property_id
+          - date_range
+          - updated_at
+        properties:
+          property_id:
+            type: string
+          date_range:
+            type: object
+            properties:
+              start_date:
+                type: string
+              end_date:
+                type: string
+          availability_changes:
+            type: array
+            items:
+              type: object
+              properties:
+                date:
+                  type: string
+                is_available:
+                  type: boolean
+                price_per_night:
+                  type: number
+          updated_at:
+            type: string
+    PropertyAnalyticsUpdated:
+      payload:
+        type: object
+        required:
+          - property_id
+          - analytics_data
+          - updated_at
+        properties:
+          property_id:
+            type: string
+          analytics_data:
+            type: object
+            properties:
+              occupancy_rate:
+                type: number
+              average_daily_rate:
+                type: number
+              revenue_per_available_night:
+                type: number
+              total_bookings:
+                type: number
+              gross_revenue:
+                type: number
+              net_revenue:
+                type: number
+              average_rating:
+                type: number
+              review_count:
+                type: number
+          period:
+            type: object
+            properties:
+              start_date:
+                type: string
+              end_date:
+                type: string
+          updated_at:
+            type: string
+    ReviewSubmitted:
+      payload:
+        type: object
+        required:
+          - review_id
+          - booking_id
+          - property_id
+          - reviewer_id
+          - overall_rating
+          - created_at
+        properties:
+          review_id:
+            type: string
+          booking_id:
+            type: string
+          property_id:
+            type: string
+          reviewer_id:
+            type: string
+          overall_rating:
+            type: number
+          cleanliness_rating:
+            type: number
+          accuracy_rating:
+            type: number
+          communication_rating:
+            type: number
+          location_rating:
+            type: number
+          checkin_rating:
+            type: number
+          value_rating:
+            type: number
+          review_text:
+            type: string
+          review_photos:
+            type: array
+            items:
+              type: string
+          is_anonymous:
+            type: boolean
+          created_at:
+            type: string
+    ReviewResponseAdded:
+      payload:
+        type: object
+        required:
+          - review_id
+          - host_response
+          - host_response_date
+        properties:
+          review_id:
+            type: string
+          host_response:
+            type: string
+          host_response_date:
+            type: string
+    ReviewUpdated:
+      payload:
+        type: object
+        required:
+          - review_id
+          - updated_at
+        properties:
+          review_id:
+            type: string
+          is_visible:
+            type: boolean
+          moderation_status:
+            type: string
+          updated_at:
+            type: string
+    SearchResultsUpdated:
+      payload:
+        type: object
+        required:
+          - search_id
+          - new_results_count
+          - updated_at
+        properties:
+          search_id:
+            type: string
+          search_criteria:
+            type: object
+            properties:
+              destination:
+                type: string
+              check_in_date:
+                type: string
+              check_out_date:
+                type: string
+              guest_count:
+                type: number
+              property_type:
+                type: string
+              price_min:
+                type: number
+              price_max:
+                type: number
+              amenities:
+                type: array
+                items:
+                  type: string
+          new_results_count:
+            type: number
+          total_results_count:
+            type: number
+          new_properties:
+            type: array
+            items:
+              type: object
+              properties:
+                property_id:
+                  type: string
+                title:
+                  type: string
+                price_per_night:
+                  type: number
+                average_rating:
+                  type: number
+          updated_at:
+            type: string
+    SavedSearchMatch:
+      payload:
+        type: object
+        required:
+          - search_id
+          - user_id
+          - matching_properties
+          - matched_at
+        properties:
+          search_id:
+            type: string
+          user_id:
+            type: string
+          search_name:
+            type: string
+          matching_properties:
+            type: array
+            items:
+              type: object
+              properties:
+                property_id:
+                  type: string
+                title:
+                  type: string
+                price_per_night:
+                  type: number
+                match_reason:
+                  type: string
+          matched_at:
+            type: string
+    WeatherDataUpdated:
+      payload:
+        type: object
+        required:
+          - location_id
+          - date
+          - weather_data
+          - updated_at
+        properties:
+          location_id:
+            type: string
+          date:
+            type: string
+          weather_data:
+            type: object
+            properties:
+              temperature_min:
+                type: number
+              temperature_max:
+                type: number
+              temperature_avg:
+                type: number
+              humidity:
+                type: number
+              wind_speed:
+                type: number
+              uv_index:
+                type: number
+              weather_condition:
+                type: string
+              rainfall:
+                type: number
+              sunshine_hours:
+                type: number
+          is_forecast:
+            type: boolean
+          updated_at:
+            type: string
+    WeatherAlertIssued:
+      payload:
+        type: object
+        required:
+          - alert_id
+          - location_id
+          - alert_type
+          - severity
+          - message
+          - issued_at
+        properties:
+          alert_id:
+            type: string
+          location_id:
+            type: string
+          alert_type:
+            type: string
+          severity:
+            type: string
+            enum:
+              - low
+              - medium
+              - high
+              - extreme
+          title:
+            type: string
+          message:
+            type: string
+          starts_at:
+            type: string
+          ends_at:
+            type: string
+          issued_at:
+            type: string
+    InvestmentAnalyticsUpdated:
+      payload:
+        type: object
+        required:
+          - analytics_id
+          - property_id
+          - owner_id
+          - updated_at
+        properties:
+          analytics_id:
+            type: string
+          property_id:
+            type: string
+          owner_id:
+            type: string
+          purchase_price:
+            type: number
+          current_value:
+            type: number
+          annual_rental_income:
+            type: number
+          annual_expenses:
+            type: number
+          occupancy_rate:
+            type: number
+          rental_yield:
+            type: number
+          capital_appreciation:
+            type: number
+          total_return:
+            type: number
+          roi_percentage:
+            type: number
+          year:
+            type: number
+          updated_at:
+            type: string
+    MarketDataUpdated:
+      payload:
+        type: object
+        required:
+          - location_id
+          - property_type
+          - market_data
+          - updated_at
+        properties:
+          location_id:
+            type: string
+          property_type:
+            type: string
+          market_data:
+            type: object
+            properties:
+              average_price_per_sqm:
+                type: number
+              average_rental_yield:
+                type: number
+              price_growth_12m:
+                type: number
+              price_growth_24m:
+                type: number
+              rental_demand_score:
+                type: number
+              investment_score:
+                type: number
+              market_liquidity:
+                type: string
+              foreign_ownership_allowed:
+                type: boolean
+              property_tax_rate:
+                type: number
+              rental_tax_rate:
+                type: number
+          month:
+            type: string
+          updated_at:
+            type: string
+    PortfolioValueChanged:
+      payload:
+        type: object
+        required:
+          - user_id
+          - portfolio_summary
+          - value_change
+          - updated_at
+        properties:
+          user_id:
+            type: string
+          portfolio_summary:
+            type: object
+            properties:
+              total_properties:
+                type: number
+              total_invested:
+                type: number
+              current_portfolio_value:
+                type: number
+              total_rental_income:
+                type: number
+              average_roi:
+                type: number
+              best_performing_property:
+                type: string
+              worst_performing_property:
+                type: string
+          value_change:
+            type: object
+            properties:
+              change_amount:
+                type: number
+              change_percentage:
+                type: number
+              change_period:
+                type: string
+          updated_at:
+            type: string
+    SystemMaintenanceAlert:
+      payload:
+        type: object
+        required:
+          - alert_id
+          - maintenance_type
+          - scheduled_start
+          - estimated_duration
+          - affected_services
+        properties:
+          alert_id:
+            type: string
+          maintenance_type:
+            type: string
+          title:
+            type: string
+          description:
+            type: string
+          scheduled_start:
+            type: string
+          scheduled_end:
+            type: string
+          estimated_duration:
+            type: string
+          affected_services:
+            type: array
+            items:
+              type: string
+          impact_level:
+            type: string
+            enum:
+              - low
+              - medium
+              - high
+    EmergencyAlert:
+      payload:
+        type: object
+        required:
+          - alert_id
+          - emergency_type
+          - affected_locations
+          - severity
+          - message
+          - issued_at
+        properties:
+          alert_id:
+            type: string
+          emergency_type:
+            type: string
+          title:
+            type: string
+          message:
+            type: string
+          affected_locations:
+            type: array
+            items:
+              type: string
+          severity:
+            type: string
+            enum:
+              - info
+              - low
+              - medium
+              - high
+              - critical
+          emergency_contacts:
+            type: array
+            items:
+              type: object
+              properties:
+                contact_type:
+                  type: string
+                phone_number:
+                  type: string
+                name:
+                  type: string
+          evacuation_procedures:
+            type: string
+          issued_at:
+            type: string
+    ServiceStatusUpdate:
+      payload:
+        type: object
+        required:
+          - service_name
+          - status
+          - updated_at
+        properties:
+          service_name:
+            type: string
+          status:
+            type: string
+            enum:
+              - operational
+              - degraded
+              - partial_outage
+              - major_outage
+          status_message:
+            type: string
+          incident_id:
+            type: string
+          affected_regions:
+            type: array
+            items:
+              type: string
+          eta_resolution:
+            type: string
+          updated_at:
+            type: string
+    UserOnline:
+      payload:
+        type: object
+        required:
+          - user_id
+          - timestamp
+        properties:
+          user_id:
+            type: string
+          last_seen:
+            type: string
+          device_type:
+            type: string
+          timestamp:
+            type: string
+    UserOffline:
+      payload:
+        type: object
+        required:
+          - user_id
+          - last_seen
+        properties:
+          user_id:
+            type: string
+          last_seen:
+            type: string
+          session_duration:
+            type: number
+    UserActivityUpdate:
+      payload:
+        type: object
+        required:
+          - user_id
+          - activity_type
+          - timestamp
+        properties:
+          user_id:
+            type: string
+          activity_type:
+            type: string
+          activity_data:
+            type: object
+          location:
+            type: string
+          timestamp:
+            type: string

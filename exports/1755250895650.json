@@ -1,0 +1,19 @@
+{
+  "timestamp": 1755250895650,
+  "operation": {
+    "id": "webapp:react:views",
+    "refs": {
+      "id": "UV_PropertyManagement",
+      "version": "latest"
+    }
+  },
+  "projectId": "real-estate-app-for-tourists-hot-countries",
+  "files": [
+    {
+      "path": "../../apps/real-estate-app-for-tourists-hot-countries/vitereact/src/components/views/UV_PropertyManagement.tsx",
+      "type": "text",
+      "size": 67060,
+      "dependencies": false
+    }
+  ]
+}

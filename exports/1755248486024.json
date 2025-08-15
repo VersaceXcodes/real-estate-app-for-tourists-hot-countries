@@ -1,0 +1,15 @@
+{
+  "timestamp": 1755248486024,
+  "operation": {
+    "id": "db:postgres"
+  },
+  "projectId": "real-estate-app-for-tourists-hot-countries",
+  "files": [
+    {
+      "path": "../../apps/real-estate-app-for-tourists-hot-countries/backend/db.sql",
+      "type": "text",
+      "size": 61958,
+      "dependencies": false
+    }
+  ]
+}

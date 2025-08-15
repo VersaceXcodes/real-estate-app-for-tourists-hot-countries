@@ -1,0 +1,3467 @@
+openapi: 3.0.0
+info:
+  title: SunVillas API
+  description: Comprehensive API for SunVillas - Real Estate App for Tourists in
+    Hot Countries
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+security:
+  - BearerAuth: []
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user account
+      operationId: registerUser
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - first_name
+                - last_name
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                first_name:
+                  type: string
+                  maxLength: 255
+                last_name:
+                  type: string
+                  maxLength: 255
+                phone_number:
+                  type: string
+                  nullable: true
+                user_type:
+                  type: string
+                  enum:
+                    - guest
+                    - host
+                    - admin
+                  default: guest
+                currency:
+                  type: string
+                  default: USD
+                language:
+                  type: string
+                  default: en
+                temperature_unit:
+                  type: string
+                  enum:
+                    - celsius
+                    - fahrenheit
+                  default: celsius
+      responses:
+        "201":
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/User"
+                  token:
+                    type: string
+        "400":
+          description: Invalid input data
+        "409":
+          description: Email already exists
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login with email and password
+      operationId: loginUser
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/User"
+                  token:
+                    type: string
+        "401":
+          description: Invalid credentials
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout current user session
+      operationId: logoutUser
+      responses:
+        "200":
+          description: Logout successful
+  /auth/reset-password:
+    post:
+      tags:
+        - Authentication
+      summary: Reset user password
+      operationId: resetPassword
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Password reset email sent
+  /auth/verify-email:
+    post:
+      tags:
+        - Authentication
+      summary: Verify user email address
+      operationId: verifyEmail
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+              properties:
+                token:
+                  type: string
+      responses:
+        "200":
+          description: Email verified successfully
+  /users/me:
+    get:
+      tags:
+        - Users
+      summary: Get current user profile
+      operationId: getCurrentUser
+      responses:
+        "200":
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+  /users/{user_id}:
+    get:
+      tags:
+        - Users
+      summary: Get user profile by ID
+      operationId: getUserById
+      security: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPublic"
+    put:
+      tags:
+        - Users
+      summary: Update user profile
+      operationId: updateUser
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserInput"
+      responses:
+        "200":
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+  /users/{user_id}/verification:
+    post:
+      tags:
+        - Users
+      summary: Submit user verification documents
+      operationId: submitUserVerification
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - verification_type
+                - document_url
+              properties:
+                verification_type:
+                  type: string
+                  enum:
+                    - identity
+                    - phone
+                    - address
+                document_url:
+                  type: string
+                  format: uri
+      responses:
+        "201":
+          description: Verification submitted successfully
+  /users/{user_id}/favorites:
+    get:
+      tags:
+        - Users
+      summary: Get user's favorite properties
+      operationId: getUserFavorites
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: User's favorite properties
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  favorites:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Property"
+                  total:
+                    type: integer
+    post:
+      tags:
+        - Users
+      summary: Add property to favorites
+      operationId: addToFavorites
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - property_id
+              properties:
+                property_id:
+                  type: string
+      responses:
+        "201":
+          description: Property added to favorites
+  /users/{user_id}/favorites/{property_id}:
+    delete:
+      tags:
+        - Users
+      summary: Remove property from favorites
+      operationId: removeFromFavorites
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: property_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Property removed from favorites
+  /properties:
+    get:
+      tags:
+        - Properties
+      summary: Search properties with filters
+      operationId: searchProperties
+      security: []
+      parameters:
+        - name: query
+          in: query
+          schema:
+            type: string
+        - name: destination
+          in: query
+          schema:
+            type: string
+        - name: country
+          in: query
+          schema:
+            type: string
+        - name: city
+          in: query
+          schema:
+            type: string
+        - name: check_in_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: check_out_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: guest_count
+          in: query
+          schema:
+            type: integer
+        - name: property_type
+          in: query
+          schema:
+            type: string
+        - name: price_min
+          in: query
+          schema:
+            type: number
+        - name: price_max
+          in: query
+          schema:
+            type: number
+        - name: min_bedrooms
+          in: query
+          schema:
+            type: integer
+        - name: max_bedrooms
+          in: query
+          schema:
+            type: integer
+        - name: min_bathrooms
+          in: query
+          schema:
+            type: number
+        - name: max_bathrooms
+          in: query
+          schema:
+            type: number
+        - name: amenities
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+        - name: instant_booking
+          in: query
+          schema:
+            type: boolean
+        - name: distance_beach
+          in: query
+          schema:
+            type: number
+        - name: distance_airport
+          in: query
+          schema:
+            type: number
+        - name: host_language
+          in: query
+          schema:
+            type: string
+        - name: min_rating
+          in: query
+          schema:
+            type: number
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum:
+              - price
+              - rating
+              - created_at
+              - distance_beach
+            default: created_at
+        - name: sort_order
+          in: query
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Property search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  properties:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Property"
+                  total:
+                    type: integer
+                  filters:
+                    type: object
+    post:
+      tags:
+        - Properties
+      summary: Create a new property listing
+      operationId: createProperty
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePropertyInput"
+      responses:
+        "201":
+          description: Property created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Property"
+  /properties/{property_id}:
+    get:
+      tags:
+        - Properties
+      summary: Get property details by ID
+      operationId: getPropertyById
+      security: []
+      parameters:
+        - name: property_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: check_in_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: check_out_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: guest_count
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Property details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Property"
+                  - type: object
+                    properties:
+                      photos:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/PropertyPhoto"
+                      owner:
+                        $ref: "#/components/schemas/UserPublic"
+                      availability:
+                        type: object
+                      pricing:
+                        type: object
+    put:
+      tags:
+        - Properties
+      summary: Update property details
+      operationId: updateProperty
+      parameters:
+        - name: property_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePropertyInput"
+      responses:
+        "200":
+          description: Property updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Property"
+    delete:
+      tags:
+        - Properties
+      summary: Delete property listing
+      operationId: deleteProperty
+      parameters:
+        - name: property_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Property deleted successfully
+  /properties/{property_id}/availability:
+    get:
+      tags:
+        - Properties
+      summary: Get property availability calendar
+      operationId: getPropertyAvailability
+      security: []
+      parameters:
+        - name: property_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Property availability data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  availability:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date:
+                          type: string
+                          format: date
+                        is_available:
+                          type: boolean
+                        price_per_night:
+                          type: number
+                        minimum_stay:
+                          type: integer
+    put:
+      tags:
+        - Properties
+      summary: Update property availability
+      operationId: updatePropertyAvailability
+      parameters:
+        - name: property_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - availability_updates
+              properties:
+                availability_updates:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      date:
+                        type: string
+                        format: date
+                      is_available:
+                        type: boolean
+                      price_per_night:
+                        type: number
+                      minimum_stay:
+                        type: integer
+      responses:
+        "200":
+          description: Availability updated successfully
+  /properties/{property_id}/photos:
+    get:
+      tags:
+        - Properties
+      summary: Get property photos
+      operationId: getPropertyPhotos
+      security: []
+      parameters:
+        - name: property_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Property photos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PropertyPhoto"
+    post:
+      tags:
+        - Properties
+      summary: Add property photo
+      operationId: addPropertyPhoto
+      parameters:
+        - name: property_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePropertyPhotoInput"
+      responses:
+        "201":
+          description: Photo added successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PropertyPhoto"
+  /properties/{property_id}/reviews:
+    get:
+      tags:
+        - Properties
+      summary: Get property reviews
+      operationId: getPropertyReviews
+      security: []
+      parameters:
+        - name: property_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: min_rating
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum:
+              - created_at
+              - overall_rating
+            default: created_at
+        - name: sort_order
+          in: query
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+      responses:
+        "200":
+          description: Property reviews
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reviews:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: "#/components/schemas/Review"
+                        - type: object
+                          properties:
+                            reviewer:
+                              $ref: "#/components/schemas/UserPublic"
+                  total:
+                    type: integer
+                  average_rating:
+                    type: number
+  /properties/{property_id}/analytics:
+    get:
+      tags:
+        - Properties
+      summary: Get property investment analytics
+      operationId: getPropertyAnalytics
+      parameters:
+        - name: property_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Property analytics data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvestmentAnalytics"
+    post:
+      tags:
+        - Properties
+      summary: Create property analytics record
+      operationId: createPropertyAnalytics
+      parameters:
+        - name: property_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInvestmentAnalyticsInput"
+      responses:
+        "201":
+          description: Analytics created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvestmentAnalytics"
+  /photos/{photo_id}:
+    put:
+      tags:
+        - Photos
+      summary: Update property photo
+      operationId: updatePropertyPhoto
+      parameters:
+        - name: photo_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePropertyPhotoInput"
+      responses:
+        "200":
+          description: Photo updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PropertyPhoto"
+    delete:
+      tags:
+        - Photos
+      summary: Delete property photo
+      operationId: deletePropertyPhoto
+      parameters:
+        - name: photo_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Photo deleted successfully
+  /bookings:
+    get:
+      tags:
+        - Bookings
+      summary: Get user bookings
+      operationId: getUserBookings
+      parameters:
+        - name: guest_id
+          in: query
+          schema:
+            type: string
+        - name: property_id
+          in: query
+          schema:
+            type: string
+        - name: booking_status
+          in: query
+          schema:
+            type: string
+            enum:
+              - pending
+              - confirmed
+              - cancelled
+              - completed
+        - name: payment_status
+          in: query
+          schema:
+            type: string
+            enum:
+              - pending
+              - completed
+              - failed
+              - refunded
+        - name: check_in_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: check_in_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum:
+              - created_at
+              - check_in_date
+              - total_price
+            default: created_at
+        - name: sort_order
+          in: query
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+      responses:
+        "200":
+          description: User bookings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bookings:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: "#/components/schemas/Booking"
+                        - type: object
+                          properties:
+                            property:
+                              $ref: "#/components/schemas/Property"
+                  total:
+                    type: integer
+    post:
+      tags:
+        - Bookings
+      summary: Create a new booking
+      operationId: createBooking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBookingInput"
+      responses:
+        "201":
+          description: Booking created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+  /bookings/{booking_id}:
+    get:
+      tags:
+        - Bookings
+      summary: Get booking details
+      operationId: getBookingById
+      parameters:
+        - name: booking_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Booking details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Booking"
+                  - type: object
+                    properties:
+                      property:
+                        $ref: "#/components/schemas/Property"
+                      guest:
+                        $ref: "#/components/schemas/UserPublic"
+                      payments:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Payment"
+    put:
+      tags:
+        - Bookings
+      summary: Update booking details
+      operationId: updateBooking
+      parameters:
+        - name: booking_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBookingInput"
+      responses:
+        "200":
+          description: Booking updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+    delete:
+      tags:
+        - Bookings
+      summary: Cancel booking
+      operationId: cancelBooking
+      parameters:
+        - name: booking_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cancellation_reason:
+                  type: string
+      responses:
+        "200":
+          description: Booking cancelled successfully
+  /bookings/{booking_id}/modifications:
+    post:
+      tags:
+        - Bookings
+      summary: Request booking modification
+      operationId: requestBookingModification
+      parameters:
+        - name: booking_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                modification_type:
+                  type: string
+                  enum:
+                    - dates
+                    - guest_count
+                new_check_in_date:
+                  type: string
+                  format: date
+                new_check_out_date:
+                  type: string
+                  format: date
+                new_guest_count:
+                  type: integer
+      responses:
+        "201":
+          description: Modification request submitted
+  /payments:
+    post:
+      tags:
+        - Payments
+      summary: Process payment for booking
+      operationId: createPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePaymentInput"
+      responses:
+        "201":
+          description: Payment processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+  /payments/{payment_id}:
+    get:
+      tags:
+        - Payments
+      summary: Get payment details
+      operationId: getPaymentById
+      parameters:
+        - name: payment_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Payment details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+    put:
+      tags:
+        - Payments
+      summary: Update payment status
+      operationId: updatePayment
+      parameters:
+        - name: payment_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePaymentInput"
+      responses:
+        "200":
+          description: Payment updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+  /reviews:
+    post:
+      tags:
+        - Reviews
+      summary: Submit a property review
+      operationId: createReview
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReviewInput"
+      responses:
+        "201":
+          description: Review submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Review"
+  /reviews/{review_id}:
+    get:
+      tags:
+        - Reviews
+      summary: Get review details
+      operationId: getReviewById
+      security: []
+      parameters:
+        - name: review_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Review details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Review"
+                  - type: object
+                    properties:
+                      reviewer:
+                        $ref: "#/components/schemas/UserPublic"
+                      property:
+                        $ref: "#/components/schemas/Property"
+    put:
+      tags:
+        - Reviews
+      summary: Update review (host response)
+      operationId: updateReview
+      parameters:
+        - name: review_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateReviewInput"
+      responses:
+        "200":
+          description: Review updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Review"
+  /conversations:
+    get:
+      tags:
+        - Messages
+      summary: Get user conversations
+      operationId: getUserConversations
+      parameters:
+        - name: conversation_type
+          in: query
+          schema:
+            type: string
+            enum:
+              - inquiry
+              - booking
+              - support
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: User conversations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversations:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: "#/components/schemas/Conversation"
+                        - type: object
+                          properties:
+                            property:
+                              $ref: "#/components/schemas/Property"
+                            guest:
+                              $ref: "#/components/schemas/UserPublic"
+                            host:
+                              $ref: "#/components/schemas/UserPublic"
+                            last_message:
+                              $ref: "#/components/schemas/Message"
+                  total:
+                    type: integer
+    post:
+      tags:
+        - Messages
+      summary: Start a new conversation
+      operationId: createConversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateConversationInput"
+      responses:
+        "201":
+          description: Conversation created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+  /conversations/{conversation_id}:
+    get:
+      tags:
+        - Messages
+      summary: Get conversation details
+      operationId: getConversationById
+      parameters:
+        - name: conversation_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Conversation details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Conversation"
+                  - type: object
+                    properties:
+                      property:
+                        $ref: "#/components/schemas/Property"
+                      guest:
+                        $ref: "#/components/schemas/UserPublic"
+                      host:
+                        $ref: "#/components/schemas/UserPublic"
+    put:
+      tags:
+        - Messages
+      summary: Update conversation
+      operationId: updateConversation
+      parameters:
+        - name: conversation_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateConversationInput"
+      responses:
+        "200":
+          description: Conversation updated successfully
+  /conversations/{conversation_id}/messages:
+    get:
+      tags:
+        - Messages
+      summary: Get conversation messages
+      operationId: getConversationMessages
+      parameters:
+        - name: conversation_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: before_message_id
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Conversation messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: "#/components/schemas/Message"
+                        - type: object
+                          properties:
+                            sender:
+                              $ref: "#/components/schemas/UserPublic"
+                  total:
+                    type: integer
+  /messages:
+    post:
+      tags:
+        - Messages
+      summary: Send a message
+      operationId: sendMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMessageInput"
+      responses:
+        "201":
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+  /messages/{message_id}:
+    put:
+      tags:
+        - Messages
+      summary: Update message (mark as read)
+      operationId: updateMessage
+      parameters:
+        - name: message_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMessageInput"
+      responses:
+        "200":
+          description: Message updated successfully
+  /inquiries:
+    get:
+      tags:
+        - Inquiries
+      summary: Get property inquiries
+      operationId: getInquiries
+      parameters:
+        - name: property_id
+          in: query
+          schema:
+            type: string
+        - name: guest_id
+          in: query
+          schema:
+            type: string
+        - name: inquiry_status
+          in: query
+          schema:
+            type: string
+            enum:
+              - pending
+              - responded
+              - expired
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Property inquiries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  inquiries:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        inquiry_id:
+                          type: string
+                        property_id:
+                          type: string
+                        guest_id:
+                          type: string
+                        check_in_date:
+                          type: string
+                          format: date
+                        check_out_date:
+                          type: string
+                          format: date
+                        guest_count:
+                          type: integer
+                        message:
+                          type: string
+                        inquiry_status:
+                          type: string
+                        host_response:
+                          type: string
+                        response_date:
+                          type: string
+                        special_offer_price:
+                          type: number
+                        expires_at:
+                          type: string
+                        created_at:
+                          type: string
+                        updated_at:
+                          type: string
+                        property:
+                          $ref: "#/components/schemas/Property"
+                        guest:
+                          $ref: "#/components/schemas/UserPublic"
+                  total:
+                    type: integer
+    post:
+      tags:
+        - Inquiries
+      summary: Submit property inquiry
+      operationId: createInquiry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - property_id
+                - guest_id
+                - message
+              properties:
+                property_id:
+                  type: string
+                guest_id:
+                  type: string
+                check_in_date:
+                  type: string
+                  format: date
+                check_out_date:
+                  type: string
+                  format: date
+                guest_count:
+                  type: integer
+                message:
+                  type: string
+      responses:
+        "201":
+          description: Inquiry submitted successfully
+  /inquiries/{inquiry_id}:
+    put:
+      tags:
+        - Inquiries
+      summary: Respond to property inquiry
+      operationId: respondToInquiry
+      parameters:
+        - name: inquiry_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                host_response:
+                  type: string
+                special_offer_price:
+                  type: number
+                inquiry_status:
+                  type: string
+                  enum:
+                    - pending
+                    - responded
+                    - expired
+      responses:
+        "200":
+          description: Inquiry response submitted
+  /saved-searches:
+    get:
+      tags:
+        - Search
+      summary: Get user's saved searches
+      operationId: getSavedSearches
+      parameters:
+        - name: user_id
+          in: query
+          schema:
+            type: string
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: User's saved searches
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  saved_searches:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SavedSearch"
+                  total:
+                    type: integer
+    post:
+      tags:
+        - Search
+      summary: Save a search
+      operationId: createSavedSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSavedSearchInput"
+      responses:
+        "201":
+          description: Search saved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedSearch"
+  /saved-searches/{search_id}:
+    put:
+      tags:
+        - Search
+      summary: Update saved search
+      operationId: updateSavedSearch
+      parameters:
+        - name: search_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                search_name:
+                  type: string
+                is_active:
+                  type: boolean
+      responses:
+        "200":
+          description: Saved search updated successfully
+    delete:
+      tags:
+        - Search
+      summary: Delete saved search
+      operationId: deleteSavedSearch
+      parameters:
+        - name: search_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Saved search deleted successfully
+  /notifications:
+    get:
+      tags:
+        - Notifications
+      summary: Get user notifications
+      operationId: getUserNotifications
+      parameters:
+        - name: user_id
+          in: query
+          schema:
+            type: string
+        - name: notification_type
+          in: query
+          schema:
+            type: string
+        - name: is_read
+          in: query
+          schema:
+            type: boolean
+        - name: priority
+          in: query
+          schema:
+            type: string
+            enum:
+              - low
+              - normal
+              - high
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: User notifications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notifications:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Notification"
+                  total:
+                    type: integer
+                  unread_count:
+                    type: integer
+  /notifications/{notification_id}:
+    put:
+      tags:
+        - Notifications
+      summary: Mark notification as read
+      operationId: markNotificationRead
+      parameters:
+        - name: notification_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateNotificationInput"
+      responses:
+        "200":
+          description: Notification marked as read
+  /notifications/mark-all-read:
+    put:
+      tags:
+        - Notifications
+      summary: Mark all notifications as read
+      operationId: markAllNotificationsRead
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+              properties:
+                user_id:
+                  type: string
+      responses:
+        "200":
+          description: All notifications marked as read
+  /locations:
+    get:
+      tags:
+        - Locations
+      summary: Get hot climate destinations
+      operationId: getLocations
+      security: []
+      parameters:
+        - name: query
+          in: query
+          schema:
+            type: string
+        - name: country
+          in: query
+          schema:
+            type: string
+        - name: climate_type
+          in: query
+          schema:
+            type: string
+        - name: is_hot_destination
+          in: query
+          schema:
+            type: boolean
+        - name: is_featured
+          in: query
+          schema:
+            type: boolean
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum:
+              - property_count
+              - city
+              - created_at
+            default: property_count
+        - name: sort_order
+          in: query
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+      responses:
+        "200":
+          description: Hot climate destinations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  locations:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Location"
+                  total:
+                    type: integer
+  /locations/{location_id}:
+    get:
+      tags:
+        - Locations
+      summary: Get location details
+      operationId: getLocationById
+      security: []
+      parameters:
+        - name: location_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Location details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Location"
+  /locations/{location_id}/weather:
+    get:
+      tags:
+        - Weather
+      summary: Get location weather data
+      operationId: getLocationWeather
+      security: []
+      parameters:
+        - name: location_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: forecast_days
+          in: query
+          schema:
+            type: integer
+            default: 7
+        - name: include_historical
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: Weather data for location
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  current:
+                    type: object
+                    properties:
+                      temperature_avg:
+                        type: number
+                      humidity:
+                        type: number
+                      wind_speed:
+                        type: number
+                      uv_index:
+                        type: number
+                      weather_condition:
+                        type: string
+                      sunshine_hours:
+                        type: number
+                  forecast:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date:
+                          type: string
+                          format: date
+                        temperature_min:
+                          type: number
+                        temperature_max:
+                          type: number
+                        temperature_avg:
+                          type: number
+                        weather_condition:
+                          type: string
+                        rainfall:
+                          type: number
+                  best_visit_months:
+                    type: array
+                    items:
+                      type: string
+  /locations/{location_id}/attractions:
+    get:
+      tags:
+        - Attractions
+      summary: Get local attractions for location
+      operationId: getLocationAttractions
+      security: []
+      parameters:
+        - name: location_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: is_featured
+          in: query
+          schema:
+            type: boolean
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Local attractions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  attractions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        attraction_id:
+                          type: string
+                        name:
+                          type: string
+                        description:
+                          type: string
+                        category:
+                          type: string
+                        latitude:
+                          type: number
+                        longitude:
+                          type: number
+                        address:
+                          type: string
+                        phone_number:
+                          type: string
+                        website_url:
+                          type: string
+                        opening_hours:
+                          type: object
+                        admission_fee:
+                          type: number
+                        rating:
+                          type: number
+                        image_urls:
+                          type: array
+                          items:
+                            type: string
+                        is_featured:
+                          type: boolean
+                  total:
+                    type: integer
+  /market-data:
+    get:
+      tags:
+        - Investment
+      summary: Get market analysis data for investment
+      operationId: getMarketData
+      parameters:
+        - name: location_id
+          in: query
+          schema:
+            type: string
+        - name: property_type
+          in: query
+          schema:
+            type: string
+        - name: month
+          in: query
+          schema:
+            type: string
+            pattern: ^\d{4}-\d{2}$
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Market analysis data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  market_data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        market_id:
+                          type: string
+                        location_id:
+                          type: string
+                        property_type:
+                          type: string
+                        average_price_per_sqm:
+                          type: number
+                        average_rental_yield:
+                          type: number
+                        price_growth_12m:
+                          type: number
+                        price_growth_24m:
+                          type: number
+                        rental_demand_score:
+                          type: number
+                        investment_score:
+                          type: number
+                        market_liquidity:
+                          type: string
+                        foreign_ownership_allowed:
+                          type: boolean
+                        property_tax_rate:
+                          type: number
+                        rental_tax_rate:
+                          type: number
+                        legal_requirements:
+                          type: array
+                          items:
+                            type: string
+                        month:
+                          type: string
+                        location:
+                          $ref: "#/components/schemas/Location"
+                  total:
+                    type: integer
+  /currency-rates:
+    get:
+      tags:
+        - Currency
+      summary: Get current currency exchange rates
+      operationId: getCurrencyRates
+      security: []
+      parameters:
+        - name: base_currency
+          in: query
+          schema:
+            type: string
+            default: USD
+        - name: target_currencies
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        "200":
+          description: Currency exchange rates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  base_currency:
+                    type: string
+                  rates:
+                    type: object
+                    additionalProperties:
+                      type: number
+                  rate_date:
+                    type: string
+                    format: date
+  /system-alerts:
+    get:
+      tags:
+        - System
+      summary: Get active system alerts
+      operationId: getSystemAlerts
+      security: []
+      parameters:
+        - name: alert_type
+          in: query
+          schema:
+            type: string
+        - name: severity
+          in: query
+          schema:
+            type: string
+            enum:
+              - info
+              - low
+              - medium
+              - high
+              - critical
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+            default: true
+        - name: affected_location
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: System alerts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  alerts:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SystemAlert"
+                  total:
+                    type: integer
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    User:
+      type: object
+      properties:
+        user_id:
+          type: string
+        email:
+          type: string
+          format: email
+        password_hash:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        phone_number:
+          type: string
+          nullable: true
+        profile_photo_url:
+          type: string
+          format: uri
+          nullable: true
+        user_type:
+          type: string
+          enum:
+            - guest
+            - host
+            - admin
+        bio:
+          type: string
+          nullable: true
+        languages_spoken:
+          type: array
+          items:
+            type: string
+          nullable: true
+        is_verified:
+          type: boolean
+        is_superhost:
+          type: boolean
+        currency:
+          type: string
+        language:
+          type: string
+        temperature_unit:
+          type: string
+          enum:
+            - celsius
+            - fahrenheit
+        notification_settings:
+          type: object
+        emergency_contact_name:
+          type: string
+          nullable: true
+        emergency_contact_phone:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        date_of_birth:
+          type: string
+          nullable: true
+        government_id_number:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+        last_login_at:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+        updated_at:
+          type: string
+    UserPublic:
+      type: object
+      properties:
+        user_id:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        profile_photo_url:
+          type: string
+          format: uri
+          nullable: true
+        user_type:
+          type: string
+          enum:
+            - guest
+            - host
+            - admin
+        bio:
+          type: string
+          nullable: true
+        languages_spoken:
+          type: array
+          items:
+            type: string
+          nullable: true
+        is_verified:
+          type: boolean
+        is_superhost:
+          type: boolean
+        created_at:
+          type: string
+    UpdateUserInput:
+      type: object
+      properties:
+        user_id:
+          type: string
+        email:
+          type: string
+          format: email
+        first_name:
+          type: string
+        last_name:
+          type: string
+        phone_number:
+          type: string
+          nullable: true
+        profile_photo_url:
+          type: string
+          format: uri
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        languages_spoken:
+          type: array
+          items:
+            type: string
+          nullable: true
+        currency:
+          type: string
+        language:
+          type: string
+        temperature_unit:
+          type: string
+          enum:
+            - celsius
+            - fahrenheit
+        notification_settings:
+          type: object
+        emergency_contact_name:
+          type: string
+          nullable: true
+        emergency_contact_phone:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        date_of_birth:
+          type: string
+          nullable: true
+        government_id_number:
+          type: string
+          nullable: true
+    Property:
+      type: object
+      properties:
+        property_id:
+          type: string
+        owner_id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        property_type:
+          type: string
+        country:
+          type: string
+        city:
+          type: string
+        region:
+          type: string
+          nullable: true
+        neighborhood:
+          type: string
+          nullable: true
+        address:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        bedrooms:
+          type: integer
+        bathrooms:
+          type: number
+        guest_count:
+          type: integer
+        property_size:
+          type: number
+          nullable: true
+        distance_beach:
+          type: number
+          nullable: true
+        distance_airport:
+          type: number
+          nullable: true
+        base_price_per_night:
+          type: number
+        currency:
+          type: string
+        cleaning_fee:
+          type: number
+          nullable: true
+        security_deposit:
+          type: number
+          nullable: true
+        extra_guest_fee:
+          type: number
+          nullable: true
+        pet_fee:
+          type: number
+          nullable: true
+        amenities:
+          type: array
+          items:
+            type: string
+        house_rules:
+          type: array
+          items:
+            type: string
+        check_in_time:
+          type: string
+        check_out_time:
+          type: string
+        minimum_stay:
+          type: integer
+        maximum_stay:
+          type: integer
+          nullable: true
+        instant_booking:
+          type: boolean
+        host_language:
+          type: array
+          items:
+            type: string
+        cancellation_policy:
+          type: string
+          enum:
+            - flexible
+            - moderate
+            - strict
+        is_active:
+          type: boolean
+        is_verified:
+          type: boolean
+        average_rating:
+          type: number
+          nullable: true
+        review_count:
+          type: integer
+        created_at:
+          type: string
+        updated_at:
+          type: string
+    CreatePropertyInput:
+      type: object
+      required:
+        - owner_id
+        - title
+        - description
+        - property_type
+        - country
+        - city
+        - address
+        - latitude
+        - longitude
+        - bedrooms
+        - bathrooms
+        - guest_count
+        - base_price_per_night
+      properties:
+        owner_id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        property_type:
+          type: string
+        country:
+          type: string
+        city:
+          type: string
+        region:
+          type: string
+          nullable: true
+        neighborhood:
+          type: string
+          nullable: true
+        address:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        bedrooms:
+          type: integer
+        bathrooms:
+          type: number
+        guest_count:
+          type: integer
+        property_size:
+          type: number
+          nullable: true
+        distance_beach:
+          type: number
+          nullable: true
+        distance_airport:
+          type: number
+          nullable: true
+        base_price_per_night:
+          type: number
+        currency:
+          type: string
+          default: USD
+        cleaning_fee:
+          type: number
+          nullable: true
+        security_deposit:
+          type: number
+          nullable: true
+        extra_guest_fee:
+          type: number
+          nullable: true
+        pet_fee:
+          type: number
+          nullable: true
+        amenities:
+          type: array
+          items:
+            type: string
+          default: []
+        house_rules:
+          type: array
+          items:
+            type: string
+          default: []
+        check_in_time:
+          type: string
+          default: 15:00
+        check_out_time:
+          type: string
+          default: 11:00
+        minimum_stay:
+          type: integer
+          default: 1
+        maximum_stay:
+          type: integer
+          nullable: true
+        instant_booking:
+          type: boolean
+          default: false
+        host_language:
+          type: array
+          items:
+            type: string
+          default: []
+        cancellation_policy:
+          type: string
+          enum:
+            - flexible
+            - moderate
+            - strict
+          default: moderate
+    UpdatePropertyInput:
+      type: object
+      properties:
+        property_id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        property_type:
+          type: string
+        region:
+          type: string
+          nullable: true
+        neighborhood:
+          type: string
+          nullable: true
+        address:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        bedrooms:
+          type: integer
+        bathrooms:
+          type: number
+        guest_count:
+          type: integer
+        property_size:
+          type: number
+          nullable: true
+        distance_beach:
+          type: number
+          nullable: true
+        distance_airport:
+          type: number
+          nullable: true
+        base_price_per_night:
+          type: number
+        cleaning_fee:
+          type: number
+          nullable: true
+        security_deposit:
+          type: number
+          nullable: true
+        extra_guest_fee:
+          type: number
+          nullable: true
+        pet_fee:
+          type: number
+          nullable: true
+        amenities:
+          type: array
+          items:
+            type: string
+        house_rules:
+          type: array
+          items:
+            type: string
+        check_in_time:
+          type: string
+        check_out_time:
+          type: string
+        minimum_stay:
+          type: integer
+        maximum_stay:
+          type: integer
+          nullable: true
+        instant_booking:
+          type: boolean
+        host_language:
+          type: array
+          items:
+            type: string
+        cancellation_policy:
+          type: string
+          enum:
+            - flexible
+            - moderate
+            - strict
+        is_active:
+          type: boolean
+    PropertyPhoto:
+      type: object
+      properties:
+        photo_id:
+          type: string
+        property_id:
+          type: string
+        photo_url:
+          type: string
+          format: uri
+        photo_order:
+          type: integer
+        is_cover_photo:
+          type: boolean
+        alt_text:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+    CreatePropertyPhotoInput:
+      type: object
+      required:
+        - property_id
+        - photo_url
+        - photo_order
+      properties:
+        property_id:
+          type: string
+        photo_url:
+          type: string
+          format: uri
+        photo_order:
+          type: integer
+        is_cover_photo:
+          type: boolean
+          default: false
+        alt_text:
+          type: string
+          nullable: true
+    UpdatePropertyPhotoInput:
+      type: object
+      properties:
+        photo_id:
+          type: string
+        photo_order:
+          type: integer
+        is_cover_photo:
+          type: boolean
+        alt_text:
+          type: string
+          nullable: true
+    Booking:
+      type: object
+      properties:
+        booking_id:
+          type: string
+        property_id:
+          type: string
+        guest_id:
+          type: string
+        check_in_date:
+          type: string
+          format: date
+        check_out_date:
+          type: string
+          format: date
+        guest_count:
+          type: integer
+        adults:
+          type: integer
+        children:
+          type: integer
+        infants:
+          type: integer
+        nights:
+          type: integer
+        base_price:
+          type: number
+        cleaning_fee:
+          type: number
+        service_fee:
+          type: number
+        taxes_and_fees:
+          type: number
+        total_price:
+          type: number
+        currency:
+          type: string
+        special_requests:
+          type: string
+          nullable: true
+        booking_status:
+          type: string
+          enum:
+            - pending
+            - confirmed
+            - cancelled
+            - completed
+        payment_status:
+          type: string
+          enum:
+            - pending
+            - completed
+            - failed
+            - refunded
+        cancellation_reason:
+          type: string
+          nullable: true
+        cancelled_at:
+          type: string
+          nullable: true
+        check_in_instructions:
+          type: string
+          nullable: true
+        access_code:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+        updated_at:
+          type: string
+    CreateBookingInput:
+      type: object
+      required:
+        - property_id
+        - guest_id
+        - check_in_date
+        - check_out_date
+        - guest_count
+        - adults
+      properties:
+        property_id:
+          type: string
+        guest_id:
+          type: string
+        check_in_date:
+          type: string
+          format: date
+        check_out_date:
+          type: string
+          format: date
+        guest_count:
+          type: integer
+        adults:
+          type: integer
+        children:
+          type: integer
+          default: 0
+        infants:
+          type: integer
+          default: 0
+        special_requests:
+          type: string
+          nullable: true
+    UpdateBookingInput:
+      type: object
+      properties:
+        booking_id:
+          type: string
+        booking_status:
+          type: string
+          enum:
+            - pending
+            - confirmed
+            - cancelled
+            - completed
+        payment_status:
+          type: string
+          enum:
+            - pending
+            - completed
+            - failed
+            - refunded
+        cancellation_reason:
+          type: string
+          nullable: true
+        check_in_instructions:
+          type: string
+          nullable: true
+        access_code:
+          type: string
+          nullable: true
+    Payment:
+      type: object
+      properties:
+        payment_id:
+          type: string
+        booking_id:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        payment_method:
+          type: string
+          enum:
+            - credit_card
+            - debit_card
+            - paypal
+            - bank_transfer
+        payment_status:
+          type: string
+          enum:
+            - pending
+            - completed
+            - failed
+            - refunded
+        transaction_id:
+          type: string
+          nullable: true
+        payment_date:
+          type: string
+          nullable: true
+        refund_amount:
+          type: number
+          nullable: true
+        refund_date:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+        updated_at:
+          type: string
+    CreatePaymentInput:
+      type: object
+      required:
+        - booking_id
+        - amount
+        - currency
+        - payment_method
+      properties:
+        booking_id:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        payment_method:
+          type: string
+          enum:
+            - credit_card
+            - debit_card
+            - paypal
+            - bank_transfer
+        transaction_id:
+          type: string
+          nullable: true
+    UpdatePaymentInput:
+      type: object
+      properties:
+        payment_id:
+          type: string
+        payment_status:
+          type: string
+          enum:
+            - pending
+            - completed
+            - failed
+            - refunded
+        transaction_id:
+          type: string
+          nullable: true
+        payment_date:
+          type: string
+          nullable: true
+        refund_amount:
+          type: number
+          nullable: true
+        refund_date:
+          type: string
+          nullable: true
+    Review:
+      type: object
+      properties:
+        review_id:
+          type: string
+        booking_id:
+          type: string
+        property_id:
+          type: string
+        reviewer_id:
+          type: string
+        overall_rating:
+          type: integer
+        cleanliness_rating:
+          type: integer
+        accuracy_rating:
+          type: integer
+        communication_rating:
+          type: integer
+        location_rating:
+          type: integer
+        checkin_rating:
+          type: integer
+        value_rating:
+          type: integer
+        review_text:
+          type: string
+          nullable: true
+        review_photos:
+          type: array
+          items:
+            type: string
+            format: uri
+          nullable: true
+        is_anonymous:
+          type: boolean
+        host_response:
+          type: string
+          nullable: true
+        host_response_date:
+          type: string
+          nullable: true
+        is_visible:
+          type: boolean
+        created_at:
+          type: string
+        updated_at:
+          type: string
+    CreateReviewInput:
+      type: object
+      required:
+        - booking_id
+        - property_id
+        - reviewer_id
+        - overall_rating
+        - cleanliness_rating
+        - accuracy_rating
+        - communication_rating
+        - location_rating
+        - checkin_rating
+        - value_rating
+      properties:
+        booking_id:
+          type: string
+        property_id:
+          type: string
+        reviewer_id:
+          type: string
+        overall_rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        cleanliness_rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        accuracy_rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        communication_rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        location_rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        checkin_rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        value_rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        review_text:
+          type: string
+          nullable: true
+        review_photos:
+          type: array
+          items:
+            type: string
+            format: uri
+          nullable: true
+        is_anonymous:
+          type: boolean
+          default: false
+    UpdateReviewInput:
+      type: object
+      properties:
+        review_id:
+          type: string
+        host_response:
+          type: string
+          nullable: true
+        is_visible:
+          type: boolean
+    Conversation:
+      type: object
+      properties:
+        conversation_id:
+          type: string
+        property_id:
+          type: string
+          nullable: true
+        booking_id:
+          type: string
+          nullable: true
+        guest_id:
+          type: string
+        host_id:
+          type: string
+        conversation_type:
+          type: string
+          enum:
+            - inquiry
+            - booking
+            - support
+        subject:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+        last_message_at:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+        updated_at:
+          type: string
+    CreateConversationInput:
+      type: object
+      required:
+        - guest_id
+        - host_id
+      properties:
+        property_id:
+          type: string
+          nullable: true
+        booking_id:
+          type: string
+          nullable: true
+        guest_id:
+          type: string
+        host_id:
+          type: string
+        conversation_type:
+          type: string
+          enum:
+            - inquiry
+            - booking
+            - support
+          default: inquiry
+        subject:
+          type: string
+          nullable: true
+    UpdateConversationInput:
+      type: object
+      properties:
+        conversation_id:
+          type: string
+        subject:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+    Message:
+      type: object
+      properties:
+        message_id:
+          type: string
+        conversation_id:
+          type: string
+        sender_id:
+          type: string
+        message_text:
+          type: string
+        attachments:
+          type: array
+          items:
+            type: string
+            format: uri
+          nullable: true
+        is_read:
+          type: boolean
+        read_at:
+          type: string
+          nullable: true
+        message_type:
+          type: string
+          enum:
+            - text
+            - image
+            - document
+        is_automated:
+          type: boolean
+        created_at:
+          type: string
+    CreateMessageInput:
+      type: object
+      required:
+        - conversation_id
+        - sender_id
+        - message_text
+      properties:
+        conversation_id:
+          type: string
+        sender_id:
+          type: string
+        message_text:
+          type: string
+        attachments:
+          type: array
+          items:
+            type: string
+            format: uri
+          nullable: true
+        message_type:
+          type: string
+          enum:
+            - text
+            - image
+            - document
+          default: text
+        is_automated:
+          type: boolean
+          default: false
+    UpdateMessageInput:
+      type: object
+      properties:
+        message_id:
+          type: string
+        is_read:
+          type: boolean
+        read_at:
+          type: string
+          nullable: true
+    Location:
+      type: object
+      properties:
+        location_id:
+          type: string
+        country:
+          type: string
+        city:
+          type: string
+        region:
+          type: string
+          nullable: true
+        destination_slug:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        climate_type:
+          type: string
+        average_temperature:
+          type: number
+          nullable: true
+        is_hot_destination:
+          type: boolean
+        timezone:
+          type: string
+        currency:
+          type: string
+        languages:
+          type: array
+          items:
+            type: string
+        description:
+          type: string
+          nullable: true
+        best_visit_months:
+          type: array
+          items:
+            type: string
+          nullable: true
+        featured_image_url:
+          type: string
+          format: uri
+          nullable: true
+        is_featured:
+          type: boolean
+        property_count:
+          type: integer
+        created_at:
+          type: string
+        updated_at:
+          type: string
+    Notification:
+      type: object
+      properties:
+        notification_id:
+          type: string
+        user_id:
+          type: string
+        notification_type:
+          type: string
+        title:
+          type: string
+        message:
+          type: string
+        data:
+          type: object
+          nullable: true
+        is_read:
+          type: boolean
+        read_at:
+          type: string
+          nullable: true
+        priority:
+          type: string
+          enum:
+            - low
+            - normal
+            - high
+        expires_at:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+    UpdateNotificationInput:
+      type: object
+      properties:
+        notification_id:
+          type: string
+        is_read:
+          type: boolean
+        read_at:
+          type: string
+          nullable: true
+    SavedSearch:
+      type: object
+      properties:
+        search_id:
+          type: string
+        user_id:
+          type: string
+        search_name:
+          type: string
+        destination:
+          type: string
+          nullable: true
+        check_in_date:
+          type: string
+          format: date
+          nullable: true
+        check_out_date:
+          type: string
+          format: date
+          nullable: true
+        guest_count:
+          type: integer
+          nullable: true
+        property_type:
+          type: string
+          nullable: true
+        price_min:
+          type: number
+          nullable: true
+        price_max:
+          type: number
+          nullable: true
+        amenities:
+          type: array
+          items:
+            type: string
+          nullable: true
+        instant_booking:
+          type: boolean
+          nullable: true
+        distance_beach:
+          type: number
+          nullable: true
+        distance_airport:
+          type: number
+          nullable: true
+        host_language:
+          type: string
+          nullable: true
+        sort_by:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+        updated_at:
+          type: string
+    CreateSavedSearchInput:
+      type: object
+      required:
+        - user_id
+        - search_name
+      properties:
+        user_id:
+          type: string
+        search_name:
+          type: string
+        destination:
+          type: string
+          nullable: true
+        check_in_date:
+          type: string
+          format: date
+          nullable: true
+        check_out_date:
+          type: string
+          format: date
+          nullable: true
+        guest_count:
+          type: integer
+          nullable: true
+        property_type:
+          type: string
+          nullable: true
+        price_min:
+          type: number
+          nullable: true
+        price_max:
+          type: number
+          nullable: true
+        amenities:
+          type: array
+          items:
+            type: string
+          nullable: true
+        instant_booking:
+          type: boolean
+          nullable: true
+        distance_beach:
+          type: number
+          nullable: true
+        distance_airport:
+          type: number
+          nullable: true
+        host_language:
+          type: string
+          nullable: true
+        sort_by:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+          default: true
+    InvestmentAnalytics:
+      type: object
+      properties:
+        analytics_id:
+          type: string
+        property_id:
+          type: string
+        owner_id:
+          type: string
+        purchase_price:
+          type: number
+          nullable: true
+        purchase_date:
+          type: string
+          format: date
+          nullable: true
+        current_value:
+          type: number
+          nullable: true
+        annual_rental_income:
+          type: number
+        annual_expenses:
+          type: number
+        occupancy_rate:
+          type: number
+        rental_yield:
+          type: number
+          nullable: true
+        capital_appreciation:
+          type: number
+          nullable: true
+        total_return:
+          type: number
+          nullable: true
+        roi_percentage:
+          type: number
+          nullable: true
+        year:
+          type: integer
+        created_at:
+          type: string
+        updated_at:
+          type: string
+    CreateInvestmentAnalyticsInput:
+      type: object
+      required:
+        - property_id
+        - owner_id
+        - year
+      properties:
+        property_id:
+          type: string
+        owner_id:
+          type: string
+        purchase_price:
+          type: number
+          nullable: true
+        purchase_date:
+          type: string
+          format: date
+          nullable: true
+        current_value:
+          type: number
+          nullable: true
+        annual_rental_income:
+          type: number
+          default: 0
+        annual_expenses:
+          type: number
+          default: 0
+        occupancy_rate:
+          type: number
+          default: 0
+        year:
+          type: integer
+    SystemAlert:
+      type: object
+      properties:
+        alert_id:
+          type: string
+        alert_type:
+          type: string
+        title:
+          type: string
+        message:
+          type: string
+        severity:
+          type: string
+          enum:
+            - info
+            - low
+            - medium
+            - high
+            - critical
+        affected_locations:
+          type: array
+          items:
+            type: string
+          nullable: true
+        is_active:
+          type: boolean
+        starts_at:
+          type: string
+          nullable: true
+        ends_at:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+        updated_at:
+          type: string

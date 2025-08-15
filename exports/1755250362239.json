@@ -1,0 +1,21 @@
+{
+  "timestamp": 1755250362239,
+  "operation": {
+    "id": "settings:config:package"
+  },
+  "projectId": "real-estate-app-for-tourists-hot-countries",
+  "files": [
+    {
+      "path": "../../apps/real-estate-app-for-tourists-hot-countries/backend/package.json",
+      "type": "text",
+      "size": 1428,
+      "dependencies": true
+    },
+    {
+      "path": "../../apps/real-estate-app-for-tourists-hot-countries/backend/.env",
+      "type": "text",
+      "size": 538,
+      "dependencies": false
+    }
+  ]
+}

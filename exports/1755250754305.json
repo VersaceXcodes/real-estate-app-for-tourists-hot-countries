@@ -1,0 +1,19 @@
+{
+  "timestamp": 1755250754305,
+  "operation": {
+    "id": "webapp:react:views",
+    "refs": {
+      "id": "GV_WeatherWidget",
+      "version": "latest"
+    }
+  },
+  "projectId": "real-estate-app-for-tourists-hot-countries",
+  "files": [
+    {
+      "path": "../../apps/real-estate-app-for-tourists-hot-countries/vitereact/src/components/views/GV_WeatherWidget.tsx",
+      "type": "text",
+      "size": 13530,
+      "dependencies": false
+    }
+  ]
+}

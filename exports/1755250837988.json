@@ -1,0 +1,19 @@
+{
+  "timestamp": 1755250837988,
+  "operation": {
+    "id": "webapp:react:views",
+    "refs": {
+      "id": "UV_Landing",
+      "version": "latest"
+    }
+  },
+  "projectId": "real-estate-app-for-tourists-hot-countries",
+  "files": [
+    {
+      "path": "../../apps/real-estate-app-for-tourists-hot-countries/vitereact/src/components/views/UV_Landing.tsx",
+      "type": "text",
+      "size": 39942,
+      "dependencies": false
+    }
+  ]
+}

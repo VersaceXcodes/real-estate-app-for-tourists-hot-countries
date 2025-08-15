@@ -1,0 +1,15 @@
+{
+  "timestamp": 1755250491842,
+  "operation": {
+    "id": "settings:config:package"
+  },
+  "projectId": "real-estate-app-for-tourists-hot-countries",
+  "files": [
+    {
+      "path": "../../apps/real-estate-app-for-tourists-hot-countries/vitereact/package.json",
+      "type": "text",
+      "size": 2949,
+      "dependencies": true
+    }
+  ]
+}

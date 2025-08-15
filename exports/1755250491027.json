@@ -1,0 +1,19 @@
+{
+  "timestamp": 1755250491027,
+  "operation": {
+    "id": "webapp:react:store",
+    "refs": {
+      "id": "redux",
+      "version": "latest"
+    }
+  },
+  "projectId": "real-estate-app-for-tourists-hot-countries",
+  "files": [
+    {
+      "path": "../../apps/real-estate-app-for-tourists-hot-countries/vitereact/src/store/main.tsx",
+      "type": "text",
+      "size": 32555,
+      "dependencies": false
+    }
+  ]
+}

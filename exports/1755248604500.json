@@ -1,0 +1,15 @@
+{
+  "timestamp": 1755248604500,
+  "operation": {
+    "id": "db:schemas:zod"
+  },
+  "projectId": "real-estate-app-for-tourists-hot-countries",
+  "files": [
+    {
+      "path": "../../apps/real-estate-app-for-tourists-hot-countries/backend/schema.ts",
+      "type": "text",
+      "size": 30517,
+      "dependencies": false
+    }
+  ]
+}

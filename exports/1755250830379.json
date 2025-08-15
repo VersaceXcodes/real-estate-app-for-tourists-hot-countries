@@ -1,0 +1,19 @@
+{
+  "timestamp": 1755250830379,
+  "operation": {
+    "id": "webapp:react:views",
+    "refs": {
+      "id": "UV_Authentication",
+      "version": "1755250669874"
+    }
+  },
+  "projectId": "real-estate-app-for-tourists-hot-countries",
+  "files": [
+    {
+      "path": "../../apps/real-estate-app-for-tourists-hot-countries/vitereact/src/components/views/UV_Authentication.tsx",
+      "type": "text",
+      "size": 35551,
+      "dependencies": false
+    }
+  ]
+}

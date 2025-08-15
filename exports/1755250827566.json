@@ -1,0 +1,19 @@
+{
+  "timestamp": 1755250827566,
+  "operation": {
+    "id": "webapp:react:views",
+    "refs": {
+      "id": "UV_ReviewSubmission",
+      "version": "1755250669979"
+    }
+  },
+  "projectId": "real-estate-app-for-tourists-hot-countries",
+  "files": [
+    {
+      "path": "../../apps/real-estate-app-for-tourists-hot-countries/vitereact/src/components/views/UV_ReviewSubmission.tsx",
+      "type": "text",
+      "size": 36520,
+      "dependencies": false
+    }
+  ]
+}

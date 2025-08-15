@@ -1,2 +1,3 @@
-# real-estate-app-for-tourists-hot-countries
-Project real-estate-app-for-tourists-hot-countries generated.
+app generated from cofounder/boilerplate
+
+instructions here on how to start api and frontend , whether in parallel or separately

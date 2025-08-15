@@ -1,0 +1,19 @@
+{
+  "timestamp": 1755250789643,
+  "operation": {
+    "id": "webapp:react:views",
+    "refs": {
+      "id": "GV_TopNav",
+      "version": "latest"
+    }
+  },
+  "projectId": "real-estate-app-for-tourists-hot-countries",
+  "files": [
+    {
+      "path": "../../apps/real-estate-app-for-tourists-hot-countries/vitereact/src/components/views/GV_TopNav.tsx",
+      "type": "text",
+      "size": 26666,
+      "dependencies": false
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "timestamp": 1755248713047,
+  "operation": {
+    "id": "backend:specifications:asyncapi"
+  },
+  "projectId": "real-estate-app-for-tourists-hot-countries",
+  "files": [
+    {
+      "path": "../../apps/real-estate-app-for-tourists-hot-countries/backend/asyncapi.yaml",
+      "type": "text",
+      "size": 36642,
+      "dependencies": false
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "timestamp": 1755250864192,
+  "operation": {
+    "id": "webapp:react:views",
+    "refs": {
+      "id": "UV_UserDashboard",
+      "version": "latest"
+    }
+  },
+  "projectId": "real-estate-app-for-tourists-hot-countries",
+  "files": [
+    {
+      "path": "../../apps/real-estate-app-for-tourists-hot-countries/vitereact/src/components/views/UV_UserDashboard.tsx",
+      "type": "text",
+      "size": 53355,
+      "dependencies": false
+    }
+  ]
+}

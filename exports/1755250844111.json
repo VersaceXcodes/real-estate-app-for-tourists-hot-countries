@@ -1,0 +1,19 @@
+{
+  "timestamp": 1755250844111,
+  "operation": {
+    "id": "webapp:react:views",
+    "refs": {
+      "id": "UV_InvestmentAnalytics",
+      "version": "1755250669906"
+    }
+  },
+  "projectId": "real-estate-app-for-tourists-hot-countries",
+  "files": [
+    {
+      "path": "../../apps/real-estate-app-for-tourists-hot-countries/vitereact/src/components/views/UV_InvestmentAnalytics.tsx",
+      "type": "text",
+      "size": 45230,
+      "dependencies": false
+    }
+  ]
+}

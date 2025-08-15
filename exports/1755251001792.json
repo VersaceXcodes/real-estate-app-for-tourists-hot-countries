@@ -1,0 +1,19 @@
+{
+  "timestamp": 1755251001792,
+  "operation": {
+    "id": "webapp:react:views",
+    "refs": {
+      "id": "UV_BookingFlow",
+      "version": "latest"
+    }
+  },
+  "projectId": "real-estate-app-for-tourists-hot-countries",
+  "files": [
+    {
+      "path": "../../apps/real-estate-app-for-tourists-hot-countries/vitereact/src/components/views/UV_BookingFlow.tsx",
+      "type": "text",
+      "size": 45495,
+      "dependencies": false
+    }
+  ]
+}

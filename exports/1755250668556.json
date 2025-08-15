@@ -1,0 +1,19 @@
+{
+  "timestamp": 1755250668556,
+  "operation": {
+    "id": "webapp:react:root",
+    "refs": {
+      "id": "app",
+      "version": "latest"
+    }
+  },
+  "projectId": "real-estate-app-for-tourists-hot-countries",
+  "files": [
+    {
+      "path": "../../apps/real-estate-app-for-tourists-hot-countries/vitereact/src/App.tsx",
+      "type": "text",
+      "size": 7750,
+      "dependencies": false
+    }
+  ]
+}

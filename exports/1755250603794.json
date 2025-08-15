@@ -1,0 +1,21 @@
+{
+  "timestamp": 1755250603794,
+  "operation": {
+    "id": "backend:tests:main"
+  },
+  "projectId": "real-estate-app-for-tourists-hot-countries",
+  "files": [
+    {
+      "path": "../../apps/real-estate-app-for-tourists-hot-countries/backend/server.test.ts",
+      "type": "text",
+      "size": 68278,
+      "dependencies": false
+    },
+    {
+      "path": "../../apps/real-estate-app-for-tourists-hot-countries/backend/jest.config.ts",
+      "type": "text",
+      "size": 734,
+      "dependencies": false
+    }
+  ]
+}

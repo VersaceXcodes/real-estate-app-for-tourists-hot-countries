@@ -1,0 +1,19 @@
+{
+  "timestamp": 1755250852342,
+  "operation": {
+    "id": "webapp:react:views",
+    "refs": {
+      "id": "UV_LocalGuides",
+      "version": "1755250669941"
+    }
+  },
+  "projectId": "real-estate-app-for-tourists-hot-countries",
+  "files": [
+    {
+      "path": "../../apps/real-estate-app-for-tourists-hot-countries/vitereact/src/components/views/UV_LocalGuides.tsx",
+      "type": "text",
+      "size": 50144,
+      "dependencies": false
+    }
+  ]
+}

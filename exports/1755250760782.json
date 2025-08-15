@@ -1,0 +1,19 @@
+{
+  "timestamp": 1755250760782,
+  "operation": {
+    "id": "webapp:react:views",
+    "refs": {
+      "id": "GV_LanguageSelector",
+      "version": "1755250670249"
+    }
+  },
+  "projectId": "real-estate-app-for-tourists-hot-countries",
+  "files": [
+    {
+      "path": "../../apps/real-estate-app-for-tourists-hot-countries/vitereact/src/components/views/GV_LanguageSelector.tsx",
+      "type": "text",
+      "size": 14848,
+      "dependencies": false
+    }
+  ]
+}

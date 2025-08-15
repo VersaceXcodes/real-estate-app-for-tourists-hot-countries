@@ -1,0 +1,19 @@
+{
+  "timestamp": 1755250808416,
+  "operation": {
+    "id": "webapp:react:views",
+    "refs": {
+      "id": "GV_SearchBar",
+      "version": "latest"
+    }
+  },
+  "projectId": "real-estate-app-for-tourists-hot-countries",
+  "files": [
+    {
+      "path": "../../apps/real-estate-app-for-tourists-hot-countries/vitereact/src/components/views/GV_SearchBar.tsx",
+      "type": "text",
+      "size": 31326,
+      "dependencies": false
+    }
+  ]
+}

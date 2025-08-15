@@ -1,0 +1,19 @@
+{
+  "timestamp": 1755250844209,
+  "operation": {
+    "id": "webapp:react:views",
+    "refs": {
+      "id": "UV_PaymentProcessing",
+      "version": "1755250670010"
+    }
+  },
+  "projectId": "real-estate-app-for-tourists-hot-countries",
+  "files": [
+    {
+      "path": "../../apps/real-estate-app-for-tourists-hot-countries/vitereact/src/components/views/UV_PaymentProcessing.tsx",
+      "type": "text",
+      "size": 45886,
+      "dependencies": false
+    }
+  ]
+}
