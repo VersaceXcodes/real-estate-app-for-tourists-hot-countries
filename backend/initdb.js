@@ -30,17 +30,13 @@ async function initDb() {
     // Begin transaction
     await client.query('BEGIN');
     
-    // Read and split SQL commands
-    const dbInitCommands = fs
-      .readFileSync(`./db.sql`, "utf-8")
-      .toString()
-      .split(/(?=CREATE TABLE |INSERT INTO)/);
-
-    // Execute each command
-    for (let cmd of dbInitCommands) {
-      console.dir({ "backend:db:init:command": cmd });
-      await client.query(cmd);
-    }
+    // Read SQL file content
+    const sqlContent = fs.readFileSync(`./db.sql`, "utf-8").toString();
+    
+    // Execute the entire SQL content as one command
+    // This avoids issues with splitting multi-line statements
+    console.log('Executing database initialization script...');
+    await client.query(sqlContent);
 
     // Commit transaction
     await client.query('COMMIT');
