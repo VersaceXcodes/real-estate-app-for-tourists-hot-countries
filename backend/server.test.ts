@@ -39,13 +39,55 @@ describe('SunVillas Backend API Tests', () => {
   let authTokens = {};
 
   beforeAll(async () => {
-    // Setup test database connection
-    await pool.query('BEGIN');
+    // Create test users for all tests to use
+    const guestData = {
+      email: 'testuser@example.com',
+      password: 'password123',
+      first_name: 'Test',
+      last_name: 'User',
+      phone_number: '+1-555-0123',
+      user_type: 'guest',
+      currency: 'USD',
+      language: 'en',
+      temperature_unit: 'celsius'
+    };
+
+    const guestResponse = await request(app)
+      .post('/api/auth/register')
+      .send(guestData);
+
+    if (guestResponse.status === 201) {
+      testUsers.guest = guestResponse.body.user;
+      authTokens.guest = guestResponse.body.token;
+    }
+
+    const hostData = {
+      email: 'testhost@example.com',
+      password: 'hostpass123',
+      first_name: 'Test',
+      last_name: 'Host',
+      user_type: 'host',
+      bio: 'Experienced property host',
+      languages_spoken: ['English', 'Spanish']
+    };
+
+    const hostResponse = await request(app)
+      .post('/api/auth/register')
+      .send(hostData);
+
+    if (hostResponse.status === 201) {
+      testUsers.host = hostResponse.body.user;
+      authTokens.host = hostResponse.body.token;
+    }
   });
 
   afterAll(async () => {
     // Cleanup test database
-    await pool.query('ROLLBACK');
+    try {
+      await pool.query('DELETE FROM users WHERE email IN ($1, $2)', ['testuser@example.com', 'testhost@example.com']);
+    } catch (error) {
+      console.log('Cleanup error:', error);
+    }
     await pool.end();
   });
 

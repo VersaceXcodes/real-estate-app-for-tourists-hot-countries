@@ -273,7 +273,11 @@ app.post('/api/auth/register', async (req, res) => {
 
       // Parse JSON fields for response
       try {
-        user.languages_spoken = user.languages_spoken && user.languages_spoken.trim() !== '' && user.languages_spoken !== '[]' ? JSON.parse(user.languages_spoken) : [];
+        if (typeof user.languages_spoken === 'string') {
+          user.languages_spoken = user.languages_spoken && user.languages_spoken.trim() !== '' && user.languages_spoken !== '[]' ? JSON.parse(user.languages_spoken) : [];
+        } else if (!Array.isArray(user.languages_spoken)) {
+          user.languages_spoken = [];
+        }
       } catch (e) {
         user.languages_spoken = [];
       }
@@ -288,7 +292,22 @@ app.post('/api/auth/register', async (req, res) => {
   } catch (error) {
     console.error('Registration error:', error);
     if (error.name === 'ZodError') {
-      return res.status(400).json(createErrorResponse('Invalid input data', error, 'VALIDATION_ERROR'));
+      // Extract specific validation errors
+      const issues = error.issues || [];
+      let errorMessage = 'Invalid input data';
+      
+      // Check for specific field errors
+      for (const issue of issues) {
+        if (issue.path.includes('email')) {
+          errorMessage = 'Invalid email format';
+          break;
+        } else if (issue.path.includes('password')) {
+          errorMessage = 'Password must be at least 8 characters long';
+          break;
+        }
+      }
+      
+      return res.status(400).json(createErrorResponse(errorMessage, error, 'VALIDATION_ERROR'));
     }
     res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
   }
@@ -315,14 +334,14 @@ app.post('/api/auth/login', async (req, res) => {
       );
 
       if (result.rows.length === 0) {
-        return res.status(401).json(createErrorResponse('Invalid email or password', null, 'INVALID_CREDENTIALS'));
+        return res.status(401).json(createErrorResponse('Invalid credentials', null, 'INVALID_CREDENTIALS'));
       }
 
       const user = result.rows[0];
 
       // Direct password comparison (no hashing for development)
       if (password !== user.password_hash) {
-        return res.status(401).json(createErrorResponse('Invalid email or password', null, 'INVALID_CREDENTIALS'));
+        return res.status(401).json(createErrorResponse('Invalid credentials', null, 'INVALID_CREDENTIALS'));
       }
 
       // Update last login timestamp
@@ -372,7 +391,7 @@ app.post('/api/auth/logout', authenticateToken, async (req, res) => {
     // In a production environment, you might want to invalidate the token
     // For this implementation, we'll just return success
     res.json({
-      message: 'Logout successful'
+      message: 'User logged out successfully'
     });
   } catch (error) {
     console.error('Logout error:', error);
@@ -978,8 +997,8 @@ app.get('/api/properties', optionalAuth, async (req, res) => {
       // Process results
       const properties = result.rows.map(row => ({
         ...row,
-        amenities: row.amenities ? JSON.parse(row.amenities) : [],
-        house_rules: row.house_rules ? JSON.parse(row.house_rules) : []
+        amenities: row.amenities ? (typeof row.amenities === 'string' ? (row.amenities.startsWith('[') || row.amenities.startsWith('{') ? JSON.parse(row.amenities) : [row.amenities]) : row.amenities) : [],
+        house_rules: row.house_rules ? (typeof row.house_rules === 'string' ? (row.house_rules.startsWith('[') || row.house_rules.startsWith('{') ? JSON.parse(row.house_rules) : [row.house_rules]) : row.house_rules) : []
       }));
 
       res.json({
@@ -2381,8 +2400,13 @@ app.get('/api/locations', async (req, res) => {
 
       // Process results
       const locations = result.rows.map(row => {
-        row.languages = row.languages ? JSON.parse(row.languages) : [];
-        row.best_visit_months = row.best_visit_months ? JSON.parse(row.best_visit_months) : [];
+        try {
+          row.languages = row.languages ? (typeof row.languages === 'string' ? (row.languages.startsWith('[') || row.languages.startsWith('{') ? JSON.parse(row.languages) : [row.languages]) : row.languages) : [];
+          row.best_visit_months = row.best_visit_months ? (typeof row.best_visit_months === 'string' ? (row.best_visit_months.startsWith('[') || row.best_visit_months.startsWith('{') ? JSON.parse(row.best_visit_months) : [row.best_visit_months]) : row.best_visit_months) : [];
+        } catch (e) {
+          row.languages = [];
+          row.best_visit_months = [];
+        }
         return row;
       });
 
@@ -2557,8 +2581,13 @@ app.get('/api/locations/:location_id/attractions', async (req, res) => {
 
       // Process results
       const attractions = result.rows.map(row => {
-        row.opening_hours = row.opening_hours ? JSON.parse(row.opening_hours) : {};
-        row.image_urls = row.image_urls ? JSON.parse(row.image_urls) : [];
+        try {
+          row.opening_hours = row.opening_hours ? (typeof row.opening_hours === 'string' ? (row.opening_hours.startsWith('{') || row.opening_hours.startsWith('[') ? JSON.parse(row.opening_hours) : {}) : row.opening_hours) : {};
+          row.image_urls = row.image_urls ? (typeof row.image_urls === 'string' ? (row.image_urls.startsWith('[') || row.image_urls.startsWith('{') ? JSON.parse(row.image_urls) : [row.image_urls]) : row.image_urls) : [];
+        } catch (e) {
+          row.opening_hours = {};
+          row.image_urls = [];
+        }
         return row;
       });
 
@@ -3574,6 +3603,443 @@ app.delete('/api/saved-searches/:search_id', authenticateToken, async (req, res)
 });
 
 // ============================================================================
+// NOTIFICATION ENDPOINTS
+// ============================================================================
+
+/*
+  GET /api/notifications - Gets user notifications with filtering options
+*/
+app.get('/api/notifications', authenticateToken, async (req, res) => {
+  try {
+    const { user_id, notification_type, is_read, limit = 10, offset = 0 } = req.query;
+    
+    // Users can only see their own notifications (unless admin)
+    const targetUserId = req.user.user_type === 'admin' && user_id ? user_id : req.user.user_id;
+    
+    const client = await pool.connect();
+    
+    try {
+      let whereConditions = ['n.user_id = $1'];
+      let queryParams = [targetUserId];
+      let paramIndex = 2;
+      
+      if (notification_type) {
+        whereConditions.push(`n.notification_type = $${paramIndex}`);
+        queryParams.push(notification_type);
+        paramIndex++;
+      }
+      
+      if (is_read !== undefined) {
+        whereConditions.push(`n.is_read = $${paramIndex}`);
+        queryParams.push(is_read === 'true');
+        paramIndex++;
+      }
+      
+      const whereClause = whereConditions.join(' AND ');
+      
+      const query = `
+        SELECT n.*, u.first_name, u.last_name, u.profile_photo_url
+        FROM notifications n
+        LEFT JOIN users u ON n.related_user_id = u.user_id
+        WHERE ${whereClause}
+        ORDER BY n.created_at DESC
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      `;
+      
+      queryParams.push(parseInt(limit), parseInt(offset));
+      
+      const result = await client.query(query, queryParams);
+      
+      // Get total count
+      const countQuery = `SELECT COUNT(*) FROM notifications n WHERE ${whereClause}`;
+      const countResult = await client.query(countQuery, queryParams.slice(0, -2));
+      
+      res.json({
+        notifications: result.rows,
+        total: parseInt(countResult.rows[0].count)
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Get notifications error:', error);
+    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
+  }
+});
+
+// ============================================================================
+// CURRENCY EXCHANGE ENDPOINTS
+// ============================================================================
+
+/*
+  GET /api/currency-rates - Gets current currency exchange rates
+*/
+app.get('/api/currency-rates', async (req, res) => {
+  try {
+    const { base_currency = 'USD', target_currencies } = req.query;
+    
+    // Mock currency rates for development
+    const mockRates = {
+      USD: { EUR: 0.925, MXN: 17.25, THB: 34.5, GBP: 0.79, CAD: 1.35 },
+      EUR: { USD: 1.08, MXN: 18.65, THB: 37.3, GBP: 0.85, CAD: 1.46 },
+      MXN: { USD: 0.058, EUR: 0.054, THB: 2.0, GBP: 0.046, CAD: 0.078 }
+    };
+    
+    const rates = mockRates[base_currency] || mockRates.USD;
+    
+    let filteredRates = rates;
+    if (target_currencies) {
+      const targets = Array.isArray(target_currencies) ? target_currencies : target_currencies.split(',');
+      filteredRates = {};
+      targets.forEach(currency => {
+        if (rates[currency]) {
+          filteredRates[currency] = rates[currency];
+        }
+      });
+    }
+    
+    res.json({
+      base_currency,
+      rates: filteredRates,
+      rate_date: new Date().toISOString().split('T')[0]
+    });
+  } catch (error) {
+    console.error('Get currency rates error:', error);
+    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
+  }
+});
+
+// ============================================================================
+// SYSTEM ALERTS ENDPOINTS
+// ============================================================================
+
+/*
+  GET /api/system-alerts - Gets active system alerts
+*/
+app.get('/api/system-alerts', async (req, res) => {
+  try {
+    const { severity, is_active = true, limit = 10, offset = 0 } = req.query;
+    
+    const client = await pool.connect();
+    
+    try {
+      let whereConditions = [];
+      let queryParams = [];
+      let paramIndex = 1;
+      
+      if (is_active !== undefined) {
+        whereConditions.push(`is_active = $${paramIndex}`);
+        queryParams.push(is_active === 'true');
+        paramIndex++;
+      }
+      
+      if (severity) {
+        whereConditions.push(`severity = $${paramIndex}`);
+        queryParams.push(severity);
+        paramIndex++;
+      }
+      
+      const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+      
+      const query = `
+        SELECT * FROM system_alerts
+        ${whereClause}
+        ORDER BY created_at DESC
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      `;
+      
+      queryParams.push(parseInt(limit), parseInt(offset));
+      
+      const result = await client.query(query, queryParams);
+      
+      // Get total count
+      const countQuery = `SELECT COUNT(*) FROM system_alerts ${whereClause}`;
+      const countResult = await client.query(countQuery, queryParams.slice(0, -2));
+      
+      res.json({
+        alerts: result.rows,
+        total: parseInt(countResult.rows[0].count)
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Get system alerts error:', error);
+    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
+  }
+});
+
+// ============================================================================
+// LOCATION ENDPOINTS
+// ============================================================================
+
+/*
+  GET /api/locations - Gets location data with filtering
+*/
+app.get('/api/locations', async (req, res) => {
+  try {
+    const { country, is_featured, climate_type = 'hot', limit = 10, offset = 0 } = req.query;
+    
+    const client = await pool.connect();
+    
+    try {
+      let whereConditions = [];
+      let queryParams = [];
+      let paramIndex = 1;
+      
+      if (country) {
+        whereConditions.push(`country ILIKE $${paramIndex}`);
+        queryParams.push(`%${country}%`);
+        paramIndex++;
+      }
+      
+      if (is_featured !== undefined) {
+        whereConditions.push(`is_featured = $${paramIndex}`);
+        queryParams.push(is_featured === 'true');
+        paramIndex++;
+      }
+      
+      if (climate_type) {
+        whereConditions.push(`climate_type = $${paramIndex}`);
+        queryParams.push(climate_type);
+        paramIndex++;
+      }
+      
+      const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+      
+      const query = `
+        SELECT * FROM locations
+        ${whereClause}
+        ORDER BY is_featured DESC, city ASC
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      `;
+      
+      queryParams.push(parseInt(limit), parseInt(offset));
+      
+      const result = await client.query(query, queryParams);
+      
+      // Get total count
+      const countQuery = `SELECT COUNT(*) FROM locations ${whereClause}`;
+      const countResult = await client.query(countQuery, queryParams.slice(0, -2));
+      
+      res.json({
+        locations: result.rows,
+        total: parseInt(countResult.rows[0].count)
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Get locations error:', error);
+    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
+  }
+});
+
+/*
+  GET /api/locations/:location_id/weather - Gets weather data for a location
+*/
+app.get('/api/locations/:location_id/weather', async (req, res) => {
+  try {
+    const { location_id } = req.params;
+    const { forecast_days = 7 } = req.query;
+    
+    // Mock weather data for development
+    const mockWeatherData = {
+      location_id,
+      current: {
+        temperature_avg: 26.5,
+        humidity: 78.2,
+        wind_speed: 12.5,
+        uv_index: 8.5,
+        weather_condition: 'Sunny',
+        sunshine_hours: 9.5
+      },
+      forecast: Array.from({ length: parseInt(forecast_days) }, (_, i) => ({
+        date: new Date(Date.now() + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        temperature_high: 28 + Math.random() * 4,
+        temperature_low: 22 + Math.random() * 4,
+        humidity: 70 + Math.random() * 20,
+        wind_speed: 10 + Math.random() * 10,
+        weather_condition: ['Sunny', 'Partly Cloudy', 'Cloudy'][Math.floor(Math.random() * 3)],
+        precipitation_chance: Math.random() * 30
+      }))
+    };
+    
+    res.json(mockWeatherData);
+  } catch (error) {
+    console.error('Get weather error:', error);
+    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
+  }
+});
+
+/*
+  GET /api/locations/:location_id/attractions - Gets local attractions
+*/
+app.get('/api/locations/:location_id/attractions', async (req, res) => {
+  try {
+    const { location_id } = req.params;
+    const { category, limit = 10, offset = 0 } = req.query;
+    
+    const client = await pool.connect();
+    
+    try {
+      let whereConditions = ['location_id = $1'];
+      let queryParams = [location_id];
+      let paramIndex = 2;
+      
+      if (category) {
+        whereConditions.push(`category = $${paramIndex}`);
+        queryParams.push(category);
+        paramIndex++;
+      }
+      
+      const whereClause = whereConditions.join(' AND ');
+      
+      const query = `
+        SELECT * FROM attractions
+        WHERE ${whereClause}
+        ORDER BY rating DESC, name ASC
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      `;
+      
+      queryParams.push(parseInt(limit), parseInt(offset));
+      
+      const result = await client.query(query, queryParams);
+      
+      // Get total count
+      const countQuery = `SELECT COUNT(*) FROM attractions WHERE ${whereClause}`;
+      const countResult = await client.query(countQuery, queryParams.slice(0, -2));
+      
+      res.json({
+        attractions: result.rows,
+        total: parseInt(countResult.rows[0].count)
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Get attractions error:', error);
+    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
+  }
+});
+
+// ============================================================================
+// INVESTMENT ANALYTICS ENDPOINTS
+// ============================================================================
+
+/*
+  GET /api/market-data - Gets market analysis data (host access required)
+*/
+app.get('/api/market-data', authenticateToken, async (req, res) => {
+  try {
+    // Only hosts and admins can access market data
+    if (req.user.user_type !== 'host' && req.user.user_type !== 'admin') {
+      return res.status(403).json(createErrorResponse('Permission denied - host access required', null, 'PERMISSION_DENIED'));
+    }
+    
+    const { location_id, property_type, limit = 10, offset = 0 } = req.query;
+    
+    const client = await pool.connect();
+    
+    try {
+      let whereConditions = [];
+      let queryParams = [];
+      let paramIndex = 1;
+      
+      if (location_id) {
+        whereConditions.push(`location_id = $${paramIndex}`);
+        queryParams.push(location_id);
+        paramIndex++;
+      }
+      
+      if (property_type) {
+        whereConditions.push(`property_type = $${paramIndex}`);
+        queryParams.push(property_type);
+        paramIndex++;
+      }
+      
+      const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+      
+      const query = `
+        SELECT * FROM investment_analytics
+        ${whereClause}
+        ORDER BY analysis_date DESC
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      `;
+      
+      queryParams.push(parseInt(limit), parseInt(offset));
+      
+      const result = await client.query(query, queryParams);
+      
+      // Get total count
+      const countQuery = `SELECT COUNT(*) FROM investment_analytics ${whereClause}`;
+      const countResult = await client.query(countQuery, queryParams.slice(0, -2));
+      
+      res.json({
+        market_data: result.rows,
+        total: parseInt(countResult.rows[0].count)
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Get market data error:', error);
+    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
+  }
+});
+
+/*
+  GET /api/properties/:property_id/analytics - Gets property investment analytics
+*/
+app.get('/api/properties/:property_id/analytics', authenticateToken, async (req, res) => {
+  try {
+    const { property_id } = req.params;
+    
+    const client = await pool.connect();
+    
+    try {
+      // Check if user owns the property
+      const propertyCheck = await client.query('SELECT owner_id FROM properties WHERE property_id = $1', [property_id]);
+      if (propertyCheck.rows.length === 0) {
+        return res.status(404).json(createErrorResponse('Property not found', null, 'PROPERTY_NOT_FOUND'));
+      }
+      
+      if (propertyCheck.rows[0].owner_id !== req.user.user_id && req.user.user_type !== 'admin') {
+        return res.status(403).json(createErrorResponse('Permission denied', null, 'PERMISSION_DENIED'));
+      }
+      
+      // Mock analytics data for development
+      const mockAnalytics = {
+        property_id,
+        revenue_analysis: {
+          monthly_revenue: 3500,
+          yearly_projection: 42000,
+          occupancy_rate: 0.75,
+          average_daily_rate: 185
+        },
+        market_comparison: {
+          market_average_rate: 165,
+          performance_vs_market: 1.12,
+          ranking_percentile: 78
+        },
+        investment_metrics: {
+          roi_percentage: 8.5,
+          payback_period_years: 12,
+          cash_flow_monthly: 1200
+        }
+      };
+      
+      res.json(mockAnalytics);
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Get property analytics error:', error);
+    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
+  }
+});
+
+// ============================================================================
 // HEALTH CHECK AND ERROR HANDLING
 // ============================================================================
 
@@ -3608,9 +4074,11 @@ app.get(/^(?!\/api).*/, (req, res) => {
 // Export for testing
 export { app, pool };
 
-// Start the server
-server.listen(Number(PORT), '0.0.0.0', () => {
-  console.log(`🚀 SunVillas server running on port ${PORT}`);
-  console.log(`📡 WebSocket server ready for real-time features`);
-  console.log(`🌐 API endpoints available at http://localhost:${PORT}/api`);
-});
+// Start the server only if not in test mode
+if (process.env.NODE_ENV !== 'test') {
+  server.listen(Number(PORT), '0.0.0.0', () => {
+    console.log(`🚀 SunVillas server running on port ${PORT}`);
+    console.log(`📡 WebSocket server ready for real-time features`);
+    console.log(`🌐 API endpoints available at http://localhost:${PORT}/api`);
+  });
+}
