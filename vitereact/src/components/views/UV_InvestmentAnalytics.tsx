@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useAppStore } from '@/store/main';
 import axios from 'axios';
 
@@ -83,14 +83,12 @@ const UV_InvestmentAnalytics: React.FC = () => {
   const currentUser = useAppStore(state => state.authentication_state.current_user);
   const authToken = useAppStore(state => state.authentication_state.auth_token);
   const userCurrency = useAppStore(state => state.user_preferences.currency);
-  const portfolioData = useAppStore(state => state.investment_state.portfolio);
-  const marketData = useAppStore(state => state.investment_state.market_data);
-  const isInvestmentLoading = useAppStore(state => state.investment_state.is_loading);
+
   const setInvestmentPortfolio = useAppStore(state => state.set_investment_portfolio);
   const setMarketData = useAppStore(state => state.set_market_data);
   const setInvestmentLoading = useAppStore(state => state.set_investment_loading);
 
-  const queryClient = useQueryClient();
+
 
   // API functions
   const fetchMarketData = async (): Promise<{ market_data: MarketData[], total: number }> => {
@@ -149,7 +147,7 @@ const UV_InvestmentAnalytics: React.FC = () => {
     enabled: !!authToken
   });
 
-  const { data: portfolioAnalytics, isLoading: isPortfolioLoading, error: portfolioError } = useQuery({
+  const { data: portfolioAnalytics, isLoading: isPortfolioLoading } = useQuery({
     queryKey: ['investment-portfolio', currentUser?.user_id],
     queryFn: fetchInvestmentPortfolio,
     staleTime: 5 * 60 * 1000,
@@ -157,7 +155,7 @@ const UV_InvestmentAnalytics: React.FC = () => {
     enabled: !!(authToken && currentUser?.user_id)
   });
 
-  const { data: currencyRates, isLoading: isCurrencyLoading } = useQuery({
+  useQuery({
     queryKey: ['currency-rates', userCurrency],
     queryFn: fetchCurrencyRates,
     staleTime: 10 * 60 * 1000,

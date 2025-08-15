@@ -1,5 +1,5 @@
 import React from 'react';
-import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAppStore } from '@/store/main';
@@ -78,7 +78,7 @@ interface Property {
 
 const UV_LocalGuides: React.FC = () => {
   const { destination_slug } = useParams<{ destination_slug?: string }>();
-  const navigate = useNavigate();
+
   const [searchParams, setSearchParams] = useSearchParams();
   
   // Get section from URL params or default to 'overview'
@@ -87,7 +87,7 @@ const UV_LocalGuides: React.FC = () => {
   // Individual Zustand selectors to avoid infinite loops
   const currentUser = useAppStore(state => state.authentication_state.current_user);
   const userCurrency = useAppStore(state => state.user_preferences.currency);
-  const userLanguage = useAppStore(state => state.user_preferences.language);
+
   const temperatureUnit = useAppStore(state => state.user_preferences.temperature_unit);
 
   // Section navigation function

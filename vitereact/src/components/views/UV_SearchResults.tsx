@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
@@ -80,17 +80,14 @@ const UV_SearchResults: React.FC = () => {
   const isAuthenticated = useAppStore(state => state.authentication_state.authentication_status.is_authenticated);
   const currentUser = useAppStore(state => state.authentication_state.current_user);
   const authToken = useAppStore(state => state.authentication_state.auth_token);
-  const userCurrency = useAppStore(state => state.user_preferences.currency);
-  const searchState = useAppStore(state => state.search_state);
-  const updateSearchCriteria = useAppStore(state => state.update_search_criteria);
-  const setSearchResults = useAppStore(state => state.set_search_results);
+
 
   // Local state
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>('grid');
   const [showSaveSearchModal, setShowSaveSearchModal] = useState(false);
   const [saveSearchName, setSaveSearchName] = useState('');
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
 
   // Parse URL parameters to search filters
   const searchFilters = useMemo((): SearchFilters => {
@@ -303,13 +300,7 @@ const UV_SearchResults: React.FC = () => {
   // Available property types
   const propertyTypes = ['villa', 'apartment', 'house', 'resort', 'hotel'];
 
-  // Sort options
-  const sortOptions = [
-    { value: 'created_at', label: 'Newest First' },
-    { value: 'price', label: 'Price: Low to High' },
-    { value: 'rating', label: 'Highest Rated' },
-    { value: 'distance_beach', label: 'Closest to Beach' },
-  ];
+
 
   // Calculate pagination
   const totalResults = searchData?.total || 0;

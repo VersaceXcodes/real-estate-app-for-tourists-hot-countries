@@ -21,11 +21,7 @@ interface ProfileFormData {
   government_id_number: string;
 }
 
-interface VerificationData {
-  verification_type: string;
-  document_url: string;
-  status: string;
-}
+
 
 interface SavedSearch {
   search_id: string;
@@ -47,7 +43,7 @@ const UV_UserProfile: React.FC = () => {
   // Zustand selectors - CRITICAL: Individual selectors to avoid infinite loops
   const currentUser = useAppStore(state => state.authentication_state.current_user);
   const authToken = useAppStore(state => state.authentication_state.auth_token);
-  const userPreferences = useAppStore(state => state.user_preferences);
+
   const updateUserProfile = useAppStore(state => state.update_user_profile);
   const updateCurrency = useAppStore(state => state.update_currency);
   const updateLanguage = useAppStore(state => state.update_language);
@@ -98,7 +94,7 @@ const UV_UserProfile: React.FC = () => {
   }, [activeSection, setSearchParams, searchParams]);
 
   // Fetch user profile data
-  const { data: userProfileData, isLoading: profileLoading, error: profileError } = useQuery({
+  const { data: userProfileData, isLoading: profileLoading } = useQuery({
     queryKey: ['userProfile'],
     queryFn: async () => {
       const response = await axios.get(

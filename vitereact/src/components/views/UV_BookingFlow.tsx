@@ -248,7 +248,7 @@ const UV_BookingFlow: React.FC = () => {
   }, [propertySummary, nights, guest_count]);
 
   // Check availability
-  const { data: availabilityData } = useQuery({
+  useQuery({
     queryKey: ['availability', property_id, check_in_date, check_out_date],
     queryFn: async () => {
       const response = await axios.get(
@@ -367,7 +367,7 @@ const UV_BookingFlow: React.FC = () => {
       );
       return response.data;
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       // Payment successful, booking is now confirmed
       if (bookingConfirmation) {
         setBookingConfirmation(prev => prev ? {

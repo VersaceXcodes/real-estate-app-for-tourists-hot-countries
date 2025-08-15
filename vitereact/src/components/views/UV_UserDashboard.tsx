@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '@/store/main';
 import axios from 'axios';
@@ -61,17 +61,7 @@ interface FavoriteProperty {
   favorited_at: string;
 }
 
-interface InvestmentProperty {
-  property_id: string;
-  title: string;
-  purchase_price?: number;
-  current_value?: number;
-  annual_rental_income: number;
-  occupancy_rate: number;
-  rental_yield?: number;
-  roi_percentage?: number;
-  purchase_date?: string;
-}
+
 
 interface DashboardAnalytics {
   total_trips: number;
@@ -96,14 +86,14 @@ interface NotificationItem {
 
 const UV_UserDashboard: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
+
   const queryClient = useQueryClient();
 
   // CRITICAL: Individual selectors to avoid infinite loops
   const currentUser = useAppStore(state => state.authentication_state.current_user);
   const authToken = useAppStore(state => state.authentication_state.auth_token);
   const currency = useAppStore(state => state.user_preferences.currency);
-  const unreadMessages = useAppStore(state => state.notifications_state.unread_messages);
+
   const unreadNotifications = useAppStore(state => state.notifications_state.unread_notifications);
 
   // URL parameter management
