@@ -30,7 +30,7 @@ import {
   savedSearchSchema, createSavedSearchInputSchema,
   investmentAnalyticsSchema, createInvestmentAnalyticsInputSchema,
   systemAlertSchema, createSystemAlertInputSchema, searchSystemAlertsInputSchema
-} from './schema';
+} from './schema.js';
 
 // Extend Socket interface to include user property
 declare module 'socket.io' {
@@ -3364,7 +3364,7 @@ app.get('/api/notifications', authenticateToken, async (req, res) => {
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
       
-      queryParams.push(parseInt(limit), parseInt(offset));
+      queryParams.push(String(limit), String(offset));
       
       const result = await client.query(query, queryParams);
       
@@ -3403,11 +3403,11 @@ app.get('/api/currency-rates', async (req, res) => {
       MXN: { USD: 0.058, EUR: 0.054, THB: 2.0, GBP: 0.046, CAD: 0.078 }
     };
     
-    const rates = mockRates[base_currency] || mockRates.USD;
+    const rates = mockRates[String(base_currency)] || mockRates.USD;
     
     let filteredRates = rates;
     if (target_currencies) {
-      const targets = Array.isArray(target_currencies) ? target_currencies : target_currencies.split(',');
+      const targets = Array.isArray(target_currencies) ? target_currencies : String(target_currencies).split(',');
       filteredRates = {};
       targets.forEach(currency => {
         if (rates[currency]) {
@@ -3478,7 +3478,7 @@ app.get('/api/locations', async (req, res) => {
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
       
-      queryParams.push(parseInt(limit), parseInt(offset));
+      queryParams.push(String(limit), String(offset));
       
       const result = await client.query(query, queryParams);
       
@@ -3518,7 +3518,7 @@ app.get('/api/locations/:location_id/weather', async (req, res) => {
         weather_condition: 'Sunny',
         sunshine_hours: 9.5
       },
-      forecast: Array.from({ length: parseInt(forecast_days) }, (_, i) => ({
+      forecast: Array.from({ length: parseInt(String(forecast_days)) }, (_, i) => ({
         date: new Date(Date.now() + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         temperature_high: 28 + Math.random() * 4,
         temperature_low: 22 + Math.random() * 4,
@@ -3553,7 +3553,7 @@ app.get('/api/locations/:location_id/attractions', async (req, res) => {
       
       if (category) {
         whereConditions.push(`category = $${paramIndex}`);
-        queryParams.push(category);
+        queryParams.push(String(category));
         paramIndex++;
       }
       
@@ -3566,7 +3566,7 @@ app.get('/api/locations/:location_id/attractions', async (req, res) => {
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
       
-      queryParams.push(parseInt(limit), parseInt(offset));
+      queryParams.push(String(limit), String(offset));
       
       const result = await client.query(query, queryParams);
       
