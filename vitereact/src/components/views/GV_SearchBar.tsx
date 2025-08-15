@@ -32,7 +32,9 @@ interface SavedSearchResponse {
 interface LocationsResponse {
   locations: LocationSuggestion[];
   total: number;
-}/api// API functions
+}
+
+    // API functions
 const fetchDestinationSuggestions = async (query: string): Promise<LocationSuggestion[]> => {
   if (!query || query.length < 2) return [];
   
@@ -280,7 +282,9 @@ const GV_SearchBar: React.FC = () => {
   const handleSearch = () => {
     if (!validateDates()) {
       return;
-    }/api// Update global search state
+    }
+
+    // Update global search state
     updateSearchCriteria({
       destination: destination || null,
       check_in_date: checkInDate || null,
@@ -663,7 +667,7 @@ const GV_SearchBar: React.FC = () => {
               setShowGuestDropdown(false);
               setShowRecentSearches(false);
               setShowPopularDestinations(false);
-            }}/api/>
+            }}/>
         )}
       </div>
     </>

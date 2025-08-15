@@ -63,7 +63,9 @@ interface PhotoUploads {
   uploading_photos: string[];
   uploaded_photos: string[];
   upload_errors: string[];
-}/api// Star Rating Component
+}
+
+    // Star Rating Component
 const StarRating: React.FC<{
   rating: number;
   onRatingChange: (rating: number) => void;
@@ -205,7 +207,7 @@ const PhotoUpload: React.FC<{
                     if (e.target.files) {
                       handleFileSelection(Array.from(e.target.files));
                     }
-                  }}/api/>
+                  }}/>
               </label>
             </div>
             <p className="text-xs text-gray-500 mt-2">PNG, JPG, GIF up to 10MB each</p>
@@ -424,7 +426,9 @@ const UV_ReviewSubmission: React.FC = () => {
         </div>
       </>
     );
-  }/api// Error state
+  }
+
+    // Error state
   if (bookingError || !bookingData) {
     return (
       <>
@@ -449,7 +453,9 @@ const UV_ReviewSubmission: React.FC = () => {
         </div>
       </>
     );
-  }/api// Success state
+  }
+
+    // Success state
   if (submissionStatus.is_submitted) {
     return (
       <>
@@ -482,7 +488,9 @@ const UV_ReviewSubmission: React.FC = () => {
         </div>
       </>
     );
-  }/api// Preview mode
+  }
+
+    // Preview mode
   if (showPreview) {
     return (
       <>
@@ -627,7 +635,9 @@ const UV_ReviewSubmission: React.FC = () => {
         </div>
       </>
     );
-  }/api// Main form
+  }
+
+    // Main form
   return (
     <>
       <div className="min-h-screen bg-gray-50 py-8">
@@ -744,7 +754,7 @@ const UV_ReviewSubmission: React.FC = () => {
                       ? 'border-red-300'
                       : 'border-gray-300'
                   }`}
-                  maxLength={1000}/api/>
+                  maxLength={1000}/>
                 
                 <div className="text-xs text-gray-500">
                   Minimum 50 characters required. Be specific and helpful for future guests.
@@ -756,7 +766,7 @@ const UV_ReviewSubmission: React.FC = () => {
                 photos={reviewFormData.review_photos}
                 onPhotosChange={updatePhotos}
                 uploading={photoUploads.uploading_photos}
-                errors={photoUploads.upload_errors}/api/>
+                errors={photoUploads.upload_errors}/>
 
               {/* Review Options */}
               <div className="space-y-4">

@@ -89,7 +89,9 @@ const GV_LanguageSelector: React.FC = () => {
     if (languageCode === selectedLanguage) {
       setIsDropdownOpen(false);
       return;
-    }/api// Clear any previous errors
+    }
+
+    // Clear any previous errors
     setUpdateError(null);
 
     // Optimistic update

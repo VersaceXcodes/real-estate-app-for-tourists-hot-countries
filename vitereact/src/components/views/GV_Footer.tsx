@@ -521,7 +521,7 @@ const GV_Footer: React.FC = () => {
                     aria-label={`Visit our ${social.platform} page`}
                   >
                     <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                      <path d={social.icon}/api/>
+                      <path d={social.icon}/>
                     </svg>
                   </a>
                 ))}

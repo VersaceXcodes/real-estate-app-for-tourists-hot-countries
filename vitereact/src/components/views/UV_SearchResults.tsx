@@ -113,49 +113,34 @@ const UV_SearchResults: React.FC = () => {
     };
   }, [searchParams]);
 
-  // Update URL when filters change
+  // Update URL when filters change - FIXED: Removed searchParams from dependencies to prevent infinite loop
   const updateURL = useCallback((newFilters: Partial<SearchFilters>, newPage: number = 1) => {
-    const params = new URLSearchParams();
+    const params = new URLSearchParams(searchParams);
     
-    // Get current filters from searchParams directly to avoid dependency on searchFilters
-    const currentFilters = {
-      destination: searchParams.get('destination') || '',
-      check_in_date: searchParams.get('check_in_date') || '',
-      check_out_date: searchParams.get('check_out_date') || '',
-      guest_count: parseInt(searchParams.get('guest_count') || '1'),
-      property_type: searchParams.get('property_type') || '',
-      price_min: parseFloat(searchParams.get('price_min') || '0'),
-      price_max: parseFloat(searchParams.get('price_max') || '0'),
-      amenities: searchParams.get('amenities') ? searchParams.get('amenities')!.split(',') : [],
-      instant_booking: searchParams.get('instant_booking') === 'true',
-      distance_beach: parseFloat(searchParams.get('distance_beach') || '0'),
-      distance_airport: parseFloat(searchParams.get('distance_airport') || '0'),
-      host_language: searchParams.get('host_language') || '',
-      sort_by: searchParams.get('sort_by') || 'created_at',
-      sort_order: searchParams.get('sort_order') || 'desc',
-    };
-    
-    const filters = { ...currentFilters, ...newFilters };
-    
-    Object.entries(filters).forEach(([key, value]) => {
+    // Update only the changed filters
+    Object.entries(newFilters).forEach(([key, value]) => {
       if (value && value !== '' && value !== 0 && (Array.isArray(value) ? value.length > 0 : true)) {
         if (Array.isArray(value)) {
           params.set(key, value.join(','));
         } else {
           params.set(key, value.toString());
         }
+      } else {
+        params.delete(key);
       }
     });
     
     if (newPage > 1) {
       params.set('page', newPage.toString());
+    } else {
+      params.delete('page');
     }
     
     params.set('view_type', viewMode);
     
     setSearchParams(params);
     setCurrentPage(newPage);
-  }, [searchParams, viewMode, setSearchParams]);
+  }, [viewMode, setSearchParams]);
 
   // Property search query
   const { data: searchData, isLoading: isSearching, error: searchError } = useQuery({

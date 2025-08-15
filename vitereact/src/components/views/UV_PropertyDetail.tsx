@@ -562,7 +562,8 @@ const UV_PropertyDetail: React.FC = () => {
                       onClick={() => {
                         setSelectedPhotoIndex(0);
                         setShowAllPhotos(true);
-                      }}/api/>
+                      }}
+                    />
                   </div>
                   {propertyData.photos.slice(1, 5).map((photo, index) => (
                     <div key={photo.photo_id} className="relative">

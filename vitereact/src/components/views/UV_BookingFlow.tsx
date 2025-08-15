@@ -570,7 +570,8 @@ const UV_BookingFlow: React.FC = () => {
           onChange={(e) => setBookingData(prev => ({ ...prev, special_requests: e.target.value }))}
           placeholder="Any special requests or notes for the host..."
           className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          rows={4}/api/>
+          rows={4}
+        />
       </div>
 
       {propertySummary && (
@@ -708,7 +709,7 @@ const UV_BookingFlow: React.FC = () => {
               onChange={(e) => setGuestInformation(prev => ({ ...prev, accessibility_needs: e.target.value }))}
               placeholder="Please describe any accessibility requirements..."
               className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              rows={3}/api/>
+              rows={3}/>
           </div>
         </div>
       </div>
@@ -1032,7 +1033,9 @@ const UV_BookingFlow: React.FC = () => {
         </div>
       </>
     );
-  }/api// Error state
+  }
+
+    // Error state
   if (propertyError || !propertySummary) {
     return (
       <>
@@ -1083,7 +1086,7 @@ const UV_BookingFlow: React.FC = () => {
                     <div
                       className={`h-1 w-16 ${
                         stepNumber < currentStep ? 'bg-blue-600' : 'bg-gray-300'
-                      }`}/api/>
+                      }`}/>
                   )}
                 </div>
               ))}
