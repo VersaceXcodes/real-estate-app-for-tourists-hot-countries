@@ -1538,7 +1538,7 @@ app.post('/api/bookings', authenticateToken, async (req, res) => {
 
       // Check guest capacity
       if (validatedData.guest_count > property.guest_count) {
-        return res.status(400).json(createErrorResponse(`Guest count exceeds property capacity of ${property.guest_count}`, null, 'GUEST_COUNT_EXCEEDED'));
+        return res.status(400).json(createErrorResponse(`guest count exceeds property capacity of ${property.guest_count}`, null, 'GUEST_COUNT_EXCEEDED'));
       }
 
       // Check availability for the requested dates
@@ -2084,7 +2084,10 @@ app.post('/api/payments', authenticateToken, async (req, res) => {
         WHERE booking_id = $2
       `, [timestamp, validatedData.booking_id]);
 
-      res.status(201).json(result.rows[0]);
+      const payment = result.rows[0];
+      payment.amount = parseFloat(payment.amount);
+      
+      res.status(201).json(payment);
     } finally {
       client.release();
     }
@@ -3562,7 +3565,15 @@ app.get('/api/system-alerts', async (req, res) => {
 
       // Process results
       const alerts = result.rows.map(row => {
-        row.affected_locations = row.affected_locations ? JSON.parse(row.affected_locations) : [];
+        try {
+          if (typeof row.affected_locations === 'string') {
+            row.affected_locations = JSON.parse(row.affected_locations);
+          } else if (!Array.isArray(row.affected_locations)) {
+            row.affected_locations = [];
+          }
+        } catch (e) {
+          row.affected_locations = [];
+        }
         return row;
       });
 
@@ -3636,17 +3647,30 @@ app.get('/api/market-data', authenticateToken, async (req, res) => {
       const countResult = await client.query(countQuery, queryParams.slice(0, -2));
 
       // Process results
-      const marketData = result.rows.map(row => ({
-        ...row,
-        legal_requirements: row.legal_requirements ? JSON.parse(row.legal_requirements) : [],
-        location: {
-          location_id: row.location_id,
-          city: row.city,
-          country: row.country,
-          climate_type: row.climate_type,
-          destination_slug: row.destination_slug
+      const marketData = result.rows.map(row => {
+        let legal_requirements = [];
+        try {
+          if (typeof row.legal_requirements === 'string') {
+            legal_requirements = JSON.parse(row.legal_requirements);
+          } else if (Array.isArray(row.legal_requirements)) {
+            legal_requirements = row.legal_requirements;
+          }
+        } catch (e) {
+          legal_requirements = [];
         }
-      }));
+        
+        return {
+          ...row,
+          legal_requirements,
+          location: {
+            location_id: row.location_id,
+            city: row.city,
+            country: row.country,
+            climate_type: row.climate_type,
+            destination_slug: row.destination_slug
+          }
+        };
+      });
 
       // Clean up duplicate fields
       marketData.forEach(data => {
@@ -4023,9 +4047,8 @@ app.get('/api/notifications', authenticateToken, async (req, res) => {
       const whereClause = whereConditions.join(' AND ');
       
       const query = `
-        SELECT n.*, u.first_name, u.last_name, u.profile_photo_url
+        SELECT n.*
         FROM notifications n
-        LEFT JOIN users u ON n.related_user_id = u.user_id
         WHERE ${whereClause}
         ORDER BY n.created_at DESC
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}

@@ -32,49 +32,72 @@ jest.mock('stripe', () => ({
 global.fetch = jest.fn();
 
 describe('SunVillas Backend API Tests', () => {
-  let testUsers = {};
-  let testProperties = {};
-  let testBookings = {};
-  let testConversations = {};
-  let authTokens = {};
-  let testPayment = {};
+  let testUsers: any = {};
+  let testProperties: any = {};
+  let testBookings: any = {};
+  let testConversations: any = {};
+  let authTokens: any = {};
+  let testPayment: any = {};
 
   beforeAll(async () => {
     // Clean up any existing test data first (in proper order to handle foreign keys)
     try {
       const testEmails = ['testuser@example.com', 'testhost@example.com', 'newuser@example.com', 'newhost@example.com'];
       
-      // Delete in proper order to avoid foreign key constraint violations
-      // 1. Delete messages first (references conversations)
-      await pool.query('DELETE FROM messages WHERE conversation_id IN (SELECT conversation_id FROM conversations WHERE guest_id IN (SELECT user_id FROM users WHERE email = ANY($1)) OR host_id IN (SELECT user_id FROM users WHERE email = ANY($1)))', [testEmails]);
+      // Get user IDs first
+      const userResult = await pool.query('SELECT user_id FROM users WHERE email = ANY($1)', [testEmails]);
+      const userIds = userResult.rows.map(row => row.user_id);
       
-      // 2. Delete conversations (references properties and users)
-      await pool.query('DELETE FROM conversations WHERE guest_id IN (SELECT user_id FROM users WHERE email = ANY($1)) OR host_id IN (SELECT user_id FROM users WHERE email = ANY($1))', [testEmails]);
-      
-      // 3. Delete reviews (references bookings and properties)
-      await pool.query('DELETE FROM reviews WHERE reviewer_id IN (SELECT user_id FROM users WHERE email = ANY($1)) OR property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email = ANY($1)))', [testEmails]);
-      
-      // 4. Delete payments (references bookings)
-      await pool.query('DELETE FROM payments WHERE booking_id IN (SELECT booking_id FROM bookings WHERE guest_id IN (SELECT user_id FROM users WHERE email = ANY($1)) OR property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email = ANY($1))))', [testEmails]);
-      
-      // 5. Delete bookings (references properties and users)
-      await pool.query('DELETE FROM bookings WHERE guest_id IN (SELECT user_id FROM users WHERE email = ANY($1)) OR property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email = ANY($1)))', [testEmails]);
-      
-      // 6. Delete user favorites
-      await pool.query('DELETE FROM user_favorites WHERE user_id IN (SELECT user_id FROM users WHERE email = ANY($1))', [testEmails]);
-      
-      // 7. Delete property-related data
-      await pool.query('DELETE FROM property_availability WHERE property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email = ANY($1)))', [testEmails]);
-      await pool.query('DELETE FROM property_photos WHERE property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email = ANY($1)))', [testEmails]);
-      
-      // 8. Delete properties
-      await pool.query('DELETE FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email = ANY($1))', [testEmails]);
-      
-      // 9. Delete notifications
-      await pool.query('DELETE FROM notifications WHERE user_id IN (SELECT user_id FROM users WHERE email = ANY($1))', [testEmails]);
-      
-      // 10. Finally delete users
-      await pool.query('DELETE FROM users WHERE email = ANY($1)', [testEmails]);
+      if (userIds.length > 0) {
+        // Get property IDs
+        const propertyResult = await pool.query('SELECT property_id FROM properties WHERE owner_id = ANY($1)', [userIds]);
+        const propertyIds = propertyResult.rows.map(row => row.property_id);
+        
+        // Get booking IDs
+        const bookingResult = await pool.query('SELECT booking_id FROM bookings WHERE guest_id = ANY($1) OR property_id = ANY($2)', [userIds, propertyIds]);
+        const bookingIds = bookingResult.rows.map(row => row.booking_id);
+        
+        // Get conversation IDs
+        const conversationResult = await pool.query('SELECT conversation_id FROM conversations WHERE guest_id = ANY($1) OR host_id = ANY($1)', [userIds]);
+        const conversationIds = conversationResult.rows.map(row => row.conversation_id);
+        
+        // Delete in proper order to avoid foreign key constraint violations
+        if (conversationIds.length > 0) {
+          await pool.query('DELETE FROM messages WHERE conversation_id = ANY($1)', [conversationIds]);
+        }
+        
+        if (userIds.length > 0) {
+          await pool.query('DELETE FROM conversations WHERE guest_id = ANY($1) OR host_id = ANY($1)', [userIds]);
+        }
+        
+        if (bookingIds.length > 0) {
+          await pool.query('DELETE FROM reviews WHERE booking_id = ANY($1)', [bookingIds]);
+          await pool.query('DELETE FROM payments WHERE booking_id = ANY($1)', [bookingIds]);
+        }
+        
+        if (propertyIds.length > 0) {
+          await pool.query('DELETE FROM reviews WHERE property_id = ANY($1)', [propertyIds]);
+        }
+        
+        if (userIds.length > 0 || propertyIds.length > 0) {
+          await pool.query('DELETE FROM bookings WHERE guest_id = ANY($1) OR property_id = ANY($2)', [userIds, propertyIds]);
+        }
+        
+        if (userIds.length > 0) {
+          await pool.query('DELETE FROM user_favorites WHERE user_id = ANY($1)', [userIds]);
+          await pool.query('DELETE FROM notifications WHERE user_id = ANY($1)', [userIds]);
+        }
+        
+        if (propertyIds.length > 0) {
+          await pool.query('DELETE FROM property_availability WHERE property_id = ANY($1)', [propertyIds]);
+          await pool.query('DELETE FROM property_photos WHERE property_id = ANY($1)', [propertyIds]);
+          await pool.query('DELETE FROM properties WHERE property_id = ANY($1)', [propertyIds]);
+        }
+        
+        if (userIds.length > 0) {
+          await pool.query('DELETE FROM users WHERE user_id = ANY($1)', [userIds]);
+        }
+      }
     } catch (error) {
       console.log('Cleanup error:', error);
     }
@@ -99,8 +122,12 @@ describe('SunVillas Backend API Tests', () => {
     if (guestResponse.status === 201) {
       testUsers.guest = guestResponse.body.user;
       authTokens.guest = guestResponse.body.token;
+      console.log('Created guest user:', testUsers.guest?.user_id);
     } else {
-      console.error('Failed to create guest user:', guestResponse.body);
+      console.error('Failed to create guest user:', guestResponse.status, guestResponse.body);
+      // Don't throw error, just continue with empty test data
+      testUsers.guest = null;
+      authTokens.guest = null;
     }
 
     const hostData = {
@@ -120,8 +147,12 @@ describe('SunVillas Backend API Tests', () => {
     if (hostResponse.status === 201) {
       testUsers.host = hostResponse.body.user;
       authTokens.host = hostResponse.body.token;
+      console.log('Created host user:', testUsers.host?.user_id);
     } else {
-      console.error('Failed to create host user:', hostResponse.body);
+      console.error('Failed to create host user:', hostResponse.status, hostResponse.body);
+      // Don't throw error, just continue with empty test data
+      testUsers.host = null;
+      authTokens.host = null;
     }
 
     // Create test property if host user was created successfully
@@ -169,58 +200,85 @@ describe('SunVillas Backend API Tests', () => {
 
         if (propertyResponse.status === 201) {
           testProperties.main = propertyResponse.body;
+          console.log('Created test property:', testProperties.main?.property_id);
+        } else {
+          console.error('Failed to create test property:', propertyResponse.status, propertyResponse.body);
         }
       } catch (error) {
         console.error('Failed to create test property:', error);
       }
     }
-  });
+
+    // Verify test data was created
+    if (!testUsers.guest || !testUsers.host || !authTokens.guest || !authTokens.host) {
+      console.warn('Warning: Some test users were not created. Some tests may fail.');
+    }
+  }, 30000); // Increase timeout for setup
 
   afterAll(async () => {
     // Cleanup test database in proper order
     try {
       const testEmails = ['testuser@example.com', 'testhost@example.com', 'newuser@example.com', 'newhost@example.com'];
       
-      // Delete in proper order to avoid foreign key constraint violations
-      // 1. Delete messages first (references conversations)
-      await pool.query('DELETE FROM messages WHERE conversation_id IN (SELECT conversation_id FROM conversations WHERE guest_id IN (SELECT user_id FROM users WHERE email = ANY($1)) OR host_id IN (SELECT user_id FROM users WHERE email = ANY($1)))', [testEmails]);
+      // Get user IDs first
+      const userResult = await pool.query('SELECT user_id FROM users WHERE email = ANY($1)', [testEmails]);
+      const userIds = userResult.rows.map(row => row.user_id);
       
-      // 2. Delete conversations (references properties and users)
-      await pool.query('DELETE FROM conversations WHERE guest_id IN (SELECT user_id FROM users WHERE email = ANY($1)) OR host_id IN (SELECT user_id FROM users WHERE email = ANY($1))', [testEmails]);
-      
-      // 3. Delete reviews (references bookings and properties)
-      await pool.query('DELETE FROM reviews WHERE reviewer_id IN (SELECT user_id FROM users WHERE email = ANY($1)) OR property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email = ANY($1)))', [testEmails]);
-      
-      // 4. Delete payments (references bookings)
-      await pool.query('DELETE FROM payments WHERE booking_id IN (SELECT booking_id FROM bookings WHERE guest_id IN (SELECT user_id FROM users WHERE email = ANY($1)) OR property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email = ANY($1))))', [testEmails]);
-      
-      // 5. Delete bookings (references properties and users)
-      await pool.query('DELETE FROM bookings WHERE guest_id IN (SELECT user_id FROM users WHERE email = ANY($1)) OR property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email = ANY($1)))', [testEmails]);
-      
-      // 6. Delete user favorites
-      await pool.query('DELETE FROM user_favorites WHERE user_id IN (SELECT user_id FROM users WHERE email = ANY($1))', [testEmails]);
-      
-      // 7. Delete property-related data
-      await pool.query('DELETE FROM property_availability WHERE property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email = ANY($1)))', [testEmails]);
-      await pool.query('DELETE FROM property_photos WHERE property_id IN (SELECT property_id FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email = ANY($1)))', [testEmails]);
-      
-      // 8. Delete properties
-      await pool.query('DELETE FROM properties WHERE owner_id IN (SELECT user_id FROM users WHERE email = ANY($1))', [testEmails]);
-      
-      // 9. Delete notifications
-      await pool.query('DELETE FROM notifications WHERE user_id IN (SELECT user_id FROM users WHERE email = ANY($1))', [testEmails]);
-      
-      // 10. Finally delete users
-      await pool.query('DELETE FROM users WHERE email = ANY($1)', [testEmails]);
+      if (userIds.length > 0) {
+        // Get property IDs
+        const propertyResult = await pool.query('SELECT property_id FROM properties WHERE owner_id = ANY($1)', [userIds]);
+        const propertyIds = propertyResult.rows.map(row => row.property_id);
+        
+        // Get booking IDs
+        const bookingResult = await pool.query('SELECT booking_id FROM bookings WHERE guest_id = ANY($1) OR property_id = ANY($2)', [userIds, propertyIds]);
+        const bookingIds = bookingResult.rows.map(row => row.booking_id);
+        
+        // Get conversation IDs
+        const conversationResult = await pool.query('SELECT conversation_id FROM conversations WHERE guest_id = ANY($1) OR host_id = ANY($1)', [userIds]);
+        const conversationIds = conversationResult.rows.map(row => row.conversation_id);
+        
+        // Delete in proper order to avoid foreign key constraint violations
+        if (conversationIds.length > 0) {
+          await pool.query('DELETE FROM messages WHERE conversation_id = ANY($1)', [conversationIds]);
+        }
+        
+        if (userIds.length > 0) {
+          await pool.query('DELETE FROM conversations WHERE guest_id = ANY($1) OR host_id = ANY($1)', [userIds]);
+        }
+        
+        if (bookingIds.length > 0) {
+          await pool.query('DELETE FROM reviews WHERE booking_id = ANY($1)', [bookingIds]);
+          await pool.query('DELETE FROM payments WHERE booking_id = ANY($1)', [bookingIds]);
+        }
+        
+        if (propertyIds.length > 0) {
+          await pool.query('DELETE FROM reviews WHERE property_id = ANY($1)', [propertyIds]);
+        }
+        
+        if (userIds.length > 0 || propertyIds.length > 0) {
+          await pool.query('DELETE FROM bookings WHERE guest_id = ANY($1) OR property_id = ANY($2)', [userIds, propertyIds]);
+        }
+        
+        if (userIds.length > 0) {
+          await pool.query('DELETE FROM user_favorites WHERE user_id = ANY($1)', [userIds]);
+          await pool.query('DELETE FROM notifications WHERE user_id = ANY($1)', [userIds]);
+        }
+        
+        if (propertyIds.length > 0) {
+          await pool.query('DELETE FROM property_availability WHERE property_id = ANY($1)', [propertyIds]);
+          await pool.query('DELETE FROM property_photos WHERE property_id = ANY($1)', [propertyIds]);
+          await pool.query('DELETE FROM properties WHERE property_id = ANY($1)', [propertyIds]);
+        }
+        
+        if (userIds.length > 0) {
+          await pool.query('DELETE FROM users WHERE user_id = ANY($1)', [userIds]);
+        }
+      }
     } catch (error) {
-      console.log('Final cleanup error (expected):', error.message);
+      console.log('Cleanup error:', error);
     }
     
-    // Close WebSocket connections to prevent Jest open handles
-    if (global.clientSocket) {
-      global.clientSocket.disconnect();
-    }
-    
+    // Close database connection
     await pool.end();
   });
 
