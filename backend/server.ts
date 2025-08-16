@@ -98,7 +98,7 @@ app.use(express.json({ limit: "5mb" }));
 app.use(morgan('combined'));
 
 // Serve static files from the vitereact build directory
-app.use(express.static(path.join(__dirname, '../vitereact/public')));
+app.use(express.static(path.join(__dirname, 'dist')));
 
 // Create storage directory if it doesn't exist
 const storageDir = path.join(__dirname, 'storage');
@@ -3823,7 +3823,7 @@ app.use('/api/*', (req, res) => {
 
 // Catch-all route for SPA routing (serves index.html for non-API routes)
 app.get(/^(?!\/api).*/, (req, res) => {
-  res.sendFile(path.join(__dirname, '../backend/dist', 'index.html'));
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 // Export for testing
