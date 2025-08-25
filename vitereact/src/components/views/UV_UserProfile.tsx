@@ -193,7 +193,7 @@ const UV_UserProfile: React.FC = () => {
   const submitVerificationMutation = useMutation({
     mutationFn: async ({ verificationType, documentUrl }: { verificationType: string; documentUrl: string }) => {
       const response = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser?.user_id}/api/verification`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser?.user_id}/verification`,
         {
           verification_type: verificationType,
           document_url: documentUrl
@@ -458,7 +458,7 @@ const UV_UserProfile: React.FC = () => {
                         placeholder="Tell us about yourself..."
                         className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                         maxLength={500}/>
-                      <p className="mt-2 text-sm text-gray-500">{profileFormData.bio.length}/api/500 characters</p>
+                      <p className="mt-2 text-sm text-gray-500">{profileFormData.bio.length}/500 characters</p>
                     </div>
 
                     {/* Languages Spoken */}

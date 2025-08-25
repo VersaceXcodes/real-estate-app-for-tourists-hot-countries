@@ -109,13 +109,13 @@ const UV_UserDashboard: React.FC = () => {
   };
 
   // API base URL
-  const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/api`;
+  const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api`;
 
   // Fetch user bookings
   const { data: userBookings = [], isLoading: bookingsLoading, error: bookingsError } = useQuery({
     queryKey: ['userBookings', currentUser?.user_id],
     queryFn: async (): Promise<BookingWithProperty[]> => {
-      const response = await axios.get(`${API_BASE_URL}/api/bookings`, {
+      const response = await axios.get(`${API_BASE_URL}/bookings`, {
         params: {
           guest_id: currentUser?.user_id,
           sort_by: 'check_in_date',
@@ -151,7 +151,7 @@ const UV_UserDashboard: React.FC = () => {
   const { data: userProperties = [], isLoading: propertiesLoading } = useQuery({
     queryKey: ['userProperties', currentUser?.user_id],
     queryFn: async (): Promise<PropertyWithAnalytics[]> => {
-      const response = await axios.get(`${API_BASE_URL}/api/properties`, {
+      const response = await axios.get(`${API_BASE_URL}/properties`, {
         params: {
           owner_id: currentUser?.user_id,
           sort_by: 'created_at',
@@ -185,7 +185,7 @@ const UV_UserDashboard: React.FC = () => {
   const { data: userMessages = [], isLoading: messagesLoading } = useQuery({
     queryKey: ['userMessages', currentUser?.user_id],
     queryFn: async (): Promise<ConversationWithParticipant[]> => {
-      const response = await axios.get(`${API_BASE_URL}/api/conversations`, {
+      const response = await axios.get(`${API_BASE_URL}/conversations`, {
         params: {
           is_active: true,
           limit: 10,
@@ -219,7 +219,7 @@ const UV_UserDashboard: React.FC = () => {
   const { data: userFavorites = [], isLoading: favoritesLoading } = useQuery({
     queryKey: ['userFavorites', currentUser?.user_id],
     queryFn: async (): Promise<FavoriteProperty[]> => {
-      const response = await axios.get(`${API_BASE_URL}/api/users/${currentUser?.user_id}/api/favorites`, {
+      const response = await axios.get(`${API_BASE_URL}/users/${currentUser?.user_id}/favorites`, {
         params: { limit: 20 },
         headers: { Authorization: `Bearer ${authToken}` }
       });
@@ -245,7 +245,7 @@ const UV_UserDashboard: React.FC = () => {
   const { data: notifications = [], isLoading: notificationsLoading } = useQuery({
     queryKey: ['userNotifications', currentUser?.user_id],
     queryFn: async (): Promise<NotificationItem[]> => {
-      const response = await axios.get(`${API_BASE_URL}/api/notifications`, {
+      const response = await axios.get(`${API_BASE_URL}/notifications`, {
         params: {
           user_id: currentUser?.user_id,
           limit: 10,
@@ -265,7 +265,7 @@ const UV_UserDashboard: React.FC = () => {
   // Mark notification as read mutation
   const markNotificationReadMutation = useMutation({
     mutationFn: async (notificationId: string) => {
-      await axios.put(`${API_BASE_URL}/api/notifications/${notificationId}`, {
+      await axios.put(`${API_BASE_URL}/notifications/${notificationId}`, {
         is_read: true,
         read_at: new Date().toISOString()
       }, {
@@ -280,7 +280,7 @@ const UV_UserDashboard: React.FC = () => {
   // Cancel booking mutation
   const cancelBookingMutation = useMutation({
     mutationFn: async ({ bookingId, reason }: { bookingId: string; reason: string }) => {
-      await axios.delete(`${API_BASE_URL}/api/bookings/${bookingId}`, {
+      await axios.delete(`${API_BASE_URL}/bookings/${bookingId}`, {
         data: { cancellation_reason: reason },
         headers: { Authorization: `Bearer ${authToken}` }
       });

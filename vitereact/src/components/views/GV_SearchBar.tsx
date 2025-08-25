@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAppStore } from '@/store/main';
+import { isValidDateString, getTodayDateString, getMaxBookingDate } from '@/lib/utils';
 
 // Types for API responses
 interface LocationSuggestion {
@@ -319,18 +320,9 @@ const GV_SearchBar: React.FC = () => {
     });
   };
 
-  // Get minimum date (today)
-  const minDate = useMemo(() => {
-    return new Date().toISOString().split('T')[0];
-  }, []);
 
-  // Get minimum check-out date (day after check-in)
-  const minCheckOutDate = useMemo(() => {
-    if (!checkInDate) return minDate;
-    const checkIn = new Date(checkInDate);
-    checkIn.setDate(checkIn.getDate() + 1);
-    return checkIn.toISOString().split('T')[0];
-  }, [checkInDate, minDate]);
+
+
 
   return (
     <>
@@ -452,12 +444,16 @@ const GV_SearchBar: React.FC = () => {
                     type="date"
                     value={checkInDate}
                     onChange={(e) => {
-                      setCheckInDate(e.target.value);
-                      if (dateValidationErrors.check_in) {
-                        setDateValidationErrors(prev => ({ ...prev, check_in: null }));
+                      const value = e.target.value;
+                      if (!value || isValidDateString(value)) {
+                        setCheckInDate(value);
+                        if (dateValidationErrors.check_in) {
+                          setDateValidationErrors(prev => ({ ...prev, check_in: null }));
+                        }
                       }
                     }}
-                    min={minDate}
+                    min={getTodayDateString()}
+                    max={getMaxBookingDate()}
                     className={`px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                       dateValidationErrors.check_in ? 'border-red-300' : 'border-gray-300'
                     }`}
@@ -475,12 +471,16 @@ const GV_SearchBar: React.FC = () => {
                     type="date"
                     value={checkOutDate}
                     onChange={(e) => {
-                      setCheckOutDate(e.target.value);
-                      if (dateValidationErrors.check_out || dateValidationErrors.date_range) {
-                        setDateValidationErrors(prev => ({ ...prev, check_out: null, date_range: null }));
+                      const value = e.target.value;
+                      if (!value || isValidDateString(value)) {
+                        setCheckOutDate(value);
+                        if (dateValidationErrors.check_out || dateValidationErrors.date_range) {
+                          setDateValidationErrors(prev => ({ ...prev, check_out: null, date_range: null }));
+                        }
                       }
                     }}
-                    min={minCheckOutDate}
+                    min={checkInDate || getTodayDateString()}
+                    max={getMaxBookingDate()}
                     className={`px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                       dateValidationErrors.check_out || dateValidationErrors.date_range ? 'border-red-300' : 'border-gray-300'
                     }`}

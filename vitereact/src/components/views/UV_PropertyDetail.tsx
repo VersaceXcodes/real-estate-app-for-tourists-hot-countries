@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '@/store/main';
 import axios from 'axios';
+import { isValidDateString, getTodayDateString, getMaxBookingDate } from '@/lib/utils';
 
 // Interfaces for API responses
 interface PropertyPhoto {
@@ -913,8 +914,19 @@ const UV_PropertyDetail: React.FC = () => {
                       <input
                         type="date"
                         value={selectedDates.check_in_date}
-                        onChange={(e) => setSelectedDates(prev => ({ ...prev, check_in_date: e.target.value }))}
-                        min={new Date().toISOString().split('T')[0]}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (!value || isValidDateString(value)) {
+                            setSelectedDates(prev => ({ 
+                              ...prev, 
+                              check_in_date: value,
+                              // Clear check-out if it's before the new check-in date
+                              check_out_date: prev.check_out_date && value && prev.check_out_date <= value ? '' : prev.check_out_date
+                            }));
+                          }
+                        }}
+                        min={getTodayDateString()}
+                        max={getMaxBookingDate()}
                         className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
@@ -923,8 +935,14 @@ const UV_PropertyDetail: React.FC = () => {
                       <input
                         type="date"
                         value={selectedDates.check_out_date}
-                        onChange={(e) => setSelectedDates(prev => ({ ...prev, check_out_date: e.target.value }))}
-                        min={selectedDates.check_in_date || new Date().toISOString().split('T')[0]}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (!value || isValidDateString(value)) {
+                            setSelectedDates(prev => ({ ...prev, check_out_date: value }));
+                          }
+                        }}
+                        min={selectedDates.check_in_date || getTodayDateString()}
+                        max={getMaxBookingDate()}
                         className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>

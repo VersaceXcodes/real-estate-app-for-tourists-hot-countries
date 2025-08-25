@@ -252,7 +252,7 @@ const UV_BookingFlow: React.FC = () => {
     queryKey: ['availability', property_id, check_in_date, check_out_date],
     queryFn: async () => {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/properties/${property_id}/api/availability`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/properties/${property_id}/availability`,
         {
           params: {
             start_date: check_in_date,

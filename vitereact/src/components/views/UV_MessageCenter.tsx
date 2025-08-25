@@ -117,7 +117,7 @@ const UV_MessageCenter: React.FC = () => {
 
   const fetchConversationMessages = async (conversationId: string): Promise<{ messages: Message[]; total: number }> => {
     const response = await axios.get(
-      `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/conversations/${conversationId}/api/messages`,
+      `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/conversations/${conversationId}/messages`,
       {
         headers: { Authorization: `Bearer ${authToken}` },
         params: { limit: 50, offset: 0 }

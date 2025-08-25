@@ -143,7 +143,7 @@ const UV_LocalGuides: React.FC = () => {
     queryKey: ['weather-data', destinationData?.location_id],
     queryFn: async () => {
       if (!destinationData?.location_id) return null;
-      const response = await axios.get(`${apiBaseUrl}/api/locations/${destinationData.location_id}/api/weather`, {
+      const response = await axios.get(`${apiBaseUrl}/api/locations/${destinationData.location_id}/weather`, {
         params: {
           forecast_days: 7,
           include_historical: true
@@ -162,7 +162,7 @@ const UV_LocalGuides: React.FC = () => {
     queryKey: ['attractions-data', destinationData?.location_id],
     queryFn: async () => {
       if (!destinationData?.location_id) return [];
-      const response = await axios.get(`${apiBaseUrl}/api/locations/${destinationData.location_id}/api/attractions`, {
+      const response = await axios.get(`${apiBaseUrl}/api/locations/${destinationData.location_id}/attractions`, {
         params: {
           is_featured: true,
           limit: 20

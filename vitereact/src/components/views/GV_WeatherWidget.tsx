@@ -83,7 +83,7 @@ const GV_WeatherWidget: React.FC = () => {
       if (!selectedLocationId) throw new Error('No location selected');
       
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/locations/${selectedLocationId}/api/weather`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/locations/${selectedLocationId}/weather`,
         {
           params: {
             forecast_days: 5,

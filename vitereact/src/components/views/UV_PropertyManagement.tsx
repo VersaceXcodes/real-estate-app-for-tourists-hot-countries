@@ -222,7 +222,7 @@ const UV_PropertyManagement: React.FC = () => {
   // API function to fetch property photos
   const fetchPropertyPhotos = async (propertyId: string): Promise<PropertyPhoto[]> => {
     const response = await axios.get(
-      `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/properties/${propertyId}/api/photos`
+      `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/properties/${propertyId}/photos`
     );
     return response.data;
   };
@@ -978,7 +978,7 @@ const UV_PropertyManagement: React.FC = () => {
                         <p><strong>Type:</strong> {propertyFormData.property_type}</p>
                         <p><strong>Location:</strong> {propertyFormData.city}, {propertyFormData.country}</p>
                         <p><strong>Capacity:</strong> {propertyFormData.guest_count} guests, {propertyFormData.bedrooms} bedrooms, {propertyFormData.bathrooms} bathrooms</p>
-                        <p><strong>Price:</strong> ${propertyFormData.base_price_per_night}/api/night</p>
+                        <p><strong>Price:</strong> ${propertyFormData.base_price_per_night}/night</p>
                         <p><strong>Amenities:</strong> {propertyFormData.amenities?.length || 0} selected</p>
                       </div>
                     </div>

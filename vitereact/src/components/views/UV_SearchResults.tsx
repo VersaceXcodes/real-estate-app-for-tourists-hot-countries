@@ -674,7 +674,7 @@ const UV_SearchResults: React.FC = () => {
                           <div className="relative">
                             <Link to={`/property/${property.property_id}${searchFilters.check_in_date ? `?check_in_date=${searchFilters.check_in_date}&check_out_date=${searchFilters.check_out_date}&guest_count=${searchFilters.guest_count}` : ''}`}>
                               <img
-                                src={property.cover_photo_url || property.photos.find(p => p.is_cover_photo)?.photo_url || '/api/placeholder/400/250'}
+                                src={property.cover_photo_url || property.photos.find(p => p.is_cover_photo)?.photo_url || 'https://via.placeholder.com/400x250?text=Property+Image'}
                                 alt={property.title}
                                 className="w-full h-48 object-cover rounded-t-lg"
                               />
@@ -777,7 +777,7 @@ const UV_SearchResults: React.FC = () => {
                             <div className="relative flex-shrink-0 sm:w-64">
                               <Link to={`/property/${property.property_id}${searchFilters.check_in_date ? `?check_in_date=${searchFilters.check_in_date}&check_out_date=${searchFilters.check_out_date}&guest_count=${searchFilters.guest_count}` : ''}`}>
                                 <img
-                                  src={property.cover_photo_url || property.photos.find(p => p.is_cover_photo)?.photo_url || '/api/placeholder/400/200'}
+                                  src={property.cover_photo_url || property.photos.find(p => p.is_cover_photo)?.photo_url || 'https://via.placeholder.com/400x200?text=Property+Image'}
                                   alt={property.title}
                                   className="w-full h-48 sm:h-full object-cover rounded-t-lg sm:rounded-l-lg sm:rounded-t-none"
                                 />

@@ -166,7 +166,7 @@ const PhotoUpload: React.FC<{
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium text-gray-900">Add Photos (Optional)</h3>
-        <span className="text-sm text-gray-500">{photos.length}/api/10 photos</span>
+        <span className="text-sm text-gray-500">{photos.length}/10 photos</span>
       </div>
       
       <p className="text-sm text-gray-600">
@@ -735,7 +735,7 @@ const UV_ReviewSubmission: React.FC = () => {
                     Tell us about your experience <span className="text-red-500">*</span>
                   </label>
                   <span className="text-sm text-gray-500">
-                    {reviewFormData.review_text.length}/api/1000 characters
+                    {reviewFormData.review_text.length}/1000 characters
                   </span>
                 </div>
                 
