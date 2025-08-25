@@ -17,8 +17,8 @@ export function isValidDateString(dateString: string): boolean {
 	if (!dateString) return true; // Allow empty dates
 	// Check if it matches YYYY-MM-DD format
 	if (!dateString.match(/^\d{4}-\d{2}-\d{2}$/)) return false;
-	const date = new Date(dateString);
-	return date instanceof Date && !isNaN(date.getTime());
+	const date = new Date(dateString + 'T00:00:00.000Z'); // Use UTC to avoid timezone issues
+	return date instanceof Date && !isNaN(date.getTime()) && date.toISOString().split('T')[0] === dateString;
 }
 
 export function formatDateForDisplay(dateString: string): string {

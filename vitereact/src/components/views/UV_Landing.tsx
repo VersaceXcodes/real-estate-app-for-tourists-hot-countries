@@ -261,20 +261,16 @@ const UV_Landing: React.FC = () => {
 
   // Date change handlers with validation
   const handleCheckInDateChange = (value: string) => {
-    if (!value || isValidDateString(value)) {
-      setSearchForm(prev => ({ 
-        ...prev, 
-        check_in_date: value,
-        // Clear check-out if it's before the new check-in date
-        check_out_date: prev.check_out_date && value && prev.check_out_date <= value ? '' : prev.check_out_date
-      }));
-    }
+    setSearchForm(prev => ({ 
+      ...prev, 
+      check_in_date: value,
+      // Clear check-out if it's before the new check-in date
+      check_out_date: prev.check_out_date && value && prev.check_out_date <= value ? '' : prev.check_out_date
+    }));
   };
 
   const handleCheckOutDateChange = (value: string) => {
-    if (!value || isValidDateString(value)) {
-      setSearchForm(prev => ({ ...prev, check_out_date: value }));
-    }
+    setSearchForm(prev => ({ ...prev, check_out_date: value }));
   };
 
   // Handle search submission

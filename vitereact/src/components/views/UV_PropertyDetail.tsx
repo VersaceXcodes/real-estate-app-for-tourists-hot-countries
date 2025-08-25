@@ -916,14 +916,12 @@ const UV_PropertyDetail: React.FC = () => {
                         value={selectedDates.check_in_date}
                         onChange={(e) => {
                           const value = e.target.value;
-                          if (!value || isValidDateString(value)) {
-                            setSelectedDates(prev => ({ 
-                              ...prev, 
-                              check_in_date: value,
-                              // Clear check-out if it's before the new check-in date
-                              check_out_date: prev.check_out_date && value && prev.check_out_date <= value ? '' : prev.check_out_date
-                            }));
-                          }
+                          setSelectedDates(prev => ({ 
+                            ...prev, 
+                            check_in_date: value,
+                            // Clear check-out if it's before the new check-in date
+                            check_out_date: prev.check_out_date && value && prev.check_out_date <= value ? '' : prev.check_out_date
+                          }));
                         }}
                         min={getTodayDateString()}
                         max={getMaxBookingDate()}
@@ -937,9 +935,7 @@ const UV_PropertyDetail: React.FC = () => {
                         value={selectedDates.check_out_date}
                         onChange={(e) => {
                           const value = e.target.value;
-                          if (!value || isValidDateString(value)) {
-                            setSelectedDates(prev => ({ ...prev, check_out_date: value }));
-                          }
+                          setSelectedDates(prev => ({ ...prev, check_out_date: value }));
                         }}
                         min={selectedDates.check_in_date || getTodayDateString()}
                         max={getMaxBookingDate()}
