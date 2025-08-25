@@ -1,0 +1,269 @@
+{
+  "generated_at": "2025-01-25T10:30:00Z",
+  "user_structure": {
+    "table_name": "users",
+    "role_field": "user_type",
+    "registration_endpoint": "/api/auth/register",
+    "login_endpoint": "/api/auth/login",
+    "password_storage": "plain_text_for_development"
+  },
+  "total_users": 8,
+  "verified_users": 8,
+  "authentication_notes": "All passwords are stored in plain text for development. Backend uses direct comparison instead of hashing.",
+  "users": [
+    {
+      "user_id": "user_001",
+      "email": "john.host@example.com",
+      "password": "password123",
+      "role": "host",
+      "first_name": "John",
+      "last_name": "Anderson",
+      "phone_number": "+1-555-0101",
+      "user_type": "host",
+      "is_verified": true,
+      "is_superhost": true,
+      "currency": "USD",
+      "language": "en",
+      "verified": true,
+      "bio": "Experienced host with over 50 properties. Love meeting travelers from around the world!",
+      "languages_spoken": ["English", "Spanish", "French"]
+    },
+    {
+      "user_id": "user_002", 
+      "email": "maria.garcia@example.com",
+      "password": "password123",
+      "role": "host",
+      "first_name": "Maria",
+      "last_name": "Garcia",
+      "phone_number": "+34-600-123456",
+      "user_type": "host",
+      "is_verified": true,
+      "is_superhost": true,
+      "currency": "EUR",
+      "language": "es",
+      "verified": true,
+      "bio": "Superhost in Barcelona. I provide authentic local experiences for my guests.",
+      "languages_spoken": ["Spanish", "English", "Catalan"]
+    },
+    {
+      "user_id": "user_003",
+      "email": "sarah.guest@example.com", 
+      "password": "user123",
+      "role": "guest",
+      "first_name": "Sarah",
+      "last_name": "Johnson",
+      "phone_number": "+1-555-0201",
+      "user_type": "guest",
+      "is_verified": true,
+      "is_superhost": false,
+      "currency": "USD",
+      "language": "en",
+      "verified": true,
+      "bio": "Digital nomad who loves exploring tropical destinations and working remotely.",
+      "languages_spoken": ["English"]
+    },
+    {
+      "user_id": "user_004",
+      "email": "pierre.dubois@example.com",
+      "password": "password123", 
+      "role": "host",
+      "first_name": "Pierre",
+      "last_name": "Dubois",
+      "phone_number": "+33-6-12-34-56-78",
+      "user_type": "host",
+      "is_verified": true,
+      "is_superhost": false,
+      "currency": "EUR",
+      "language": "fr",
+      "verified": true,
+      "bio": "French property owner specializing in luxury villas on the Riviera.",
+      "languages_spoken": ["French", "English", "Italian"]
+    },
+    {
+      "user_id": "user_005",
+      "email": "alex.traveler@example.com",
+      "password": "user123",
+      "role": "guest", 
+      "first_name": "Alex",
+      "last_name": "Chen",
+      "phone_number": "+1-555-0301",
+      "user_type": "guest",
+      "is_verified": false,
+      "is_superhost": false,
+      "currency": "USD",
+      "language": "en",
+      "verified": false,
+      "bio": "Adventure seeker always looking for unique accommodations in exotic locations.",
+      "languages_spoken": ["English", "Mandarin"]
+    },
+    {
+      "user_id": "user_006",
+      "email": "emma.wilson@example.com",
+      "password": "password123",
+      "role": "host",
+      "first_name": "Emma", 
+      "last_name": "Wilson",
+      "phone_number": "+44-7700-900123",
+      "user_type": "host",
+      "is_verified": true,
+      "is_superhost": false,
+      "currency": "GBP",
+      "language": "en",
+      "verified": true,
+      "bio": "UK property investor with portfolio across tropical destinations.",
+      "languages_spoken": ["English"]
+    },
+    {
+      "user_id": "user_007",
+      "email": "carlos.host@example.com",
+      "password": "admin123",
+      "role": "host",
+      "first_name": "Carlos",
+      "last_name": "Rodriguez", 
+      "phone_number": "+52-55-1234-5678",
+      "user_type": "host",
+      "is_verified": true,
+      "is_superhost": true,
+      "currency": "MXN",
+      "language": "es",
+      "verified": true,
+      "bio": "Luxury resort owner in Tulum with passion for sustainable tourism.",
+      "languages_spoken": ["Spanish", "English"]
+    },
+    {
+      "user_id": "user_008",
+      "email": "lisa.guest@example.com",
+      "password": "user123",
+      "role": "guest",
+      "first_name": "Lisa",
+      "last_name": "Thompson",
+      "phone_number": "+1-555-0401",
+      "user_type": "guest", 
+      "is_verified": true,
+      "is_superhost": false,
+      "currency": "USD",
+      "language": "en",
+      "verified": true,
+      "bio": "Frequent business traveler who enjoys luxury accommodations and excellent service.",
+      "languages_spoken": ["English"]
+    }
+  ],
+  "by_role": {
+    "host": [
+      {
+        "email": "john.host@example.com",
+        "password": "password123",
+        "verified": true,
+        "is_superhost": true,
+        "properties_owned": "Multiple luxury properties"
+      },
+      {
+        "email": "maria.garcia@example.com", 
+        "password": "password123",
+        "verified": true,
+        "is_superhost": true,
+        "properties_owned": "Barcelona properties"
+      },
+      {
+        "email": "pierre.dubois@example.com",
+        "password": "password123",
+        "verified": true,
+        "is_superhost": false,
+        "properties_owned": "French Riviera villas"
+      },
+      {
+        "email": "emma.wilson@example.com",
+        "password": "password123", 
+        "verified": true,
+        "is_superhost": false,
+        "properties_owned": "Tropical destination portfolio"
+      },
+      {
+        "email": "carlos.host@example.com",
+        "password": "admin123",
+        "verified": true,
+        "is_superhost": true,
+        "properties_owned": "Tulum luxury resort"
+      }
+    ],
+    "guest": [
+      {
+        "email": "sarah.guest@example.com",
+        "password": "user123",
+        "verified": true,
+        "profile": "Digital nomad"
+      },
+      {
+        "email": "alex.traveler@example.com",
+        "password": "user123", 
+        "verified": false,
+        "profile": "Adventure seeker"
+      },
+      {
+        "email": "lisa.guest@example.com",
+        "password": "user123",
+        "verified": true,
+        "profile": "Business traveler"
+      }
+    ]
+  },
+  "test_scenarios": {
+    "login_tests": [
+      {
+        "description": "Host login with superhost privileges",
+        "credentials": {
+          "email": "john.host@example.com",
+          "password": "password123"
+        },
+        "expected_role": "host",
+        "expected_features": ["property_management", "booking_management", "analytics"]
+      },
+      {
+        "description": "Guest login with verified account",
+        "credentials": {
+          "email": "sarah.guest@example.com", 
+          "password": "user123"
+        },
+        "expected_role": "guest",
+        "expected_features": ["search", "booking", "favorites", "messages"]
+      },
+      {
+        "description": "Unverified guest account",
+        "credentials": {
+          "email": "alex.traveler@example.com",
+          "password": "user123"
+        },
+        "expected_role": "guest",
+        "verification_required": true
+      }
+    ],
+    "registration_test": {
+      "new_user_data": {
+        "email": "test.user@example.com",
+        "password": "testpass123",
+        "first_name": "Test",
+        "last_name": "User",
+        "user_type": "guest",
+        "currency": "USD",
+        "language": "en"
+      }
+    }
+  },
+  "api_testing": {
+    "base_url": "http://localhost:3000",
+    "login_endpoint": "/api/auth/login",
+    "register_endpoint": "/api/auth/register",
+    "user_profile_endpoint": "/api/users/me",
+    "sample_login_request": {
+      "method": "POST",
+      "url": "/api/auth/login",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "email": "john.host@example.com",
+        "password": "password123"
+      }
+    }
+  }
+}

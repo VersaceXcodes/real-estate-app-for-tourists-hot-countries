@@ -1,0 +1,215 @@
+{
+  "generated_at": "2025-01-25T10:30:00Z",
+  "project_name": "SunVillas - Real Estate Platform for Hot Countries",
+  "tech_stack": [
+    "React 18.3.1",
+    "TypeScript 5.5.3", 
+    "Vite 5.4.0",
+    "Node.js",
+    "Express 4.19.2",
+    "PostgreSQL",
+    "Socket.io",
+    "Zustand (State Management)",
+    "React Query",
+    "Tailwind CSS",
+    "Radix UI Components",
+    "Axios",
+    "JWT Authentication",
+    "Zod Validation"
+  ],
+  "architecture": {
+    "frontend": {
+      "framework": "React with Vite",
+      "state_management": "Zustand with persistence",
+      "routing": "React Router DOM",
+      "styling": "Tailwind CSS with Radix UI",
+      "api_client": "Axios with React Query"
+    },
+    "backend": {
+      "framework": "Express.js",
+      "database": "PostgreSQL",
+      "authentication": "JWT tokens",
+      "validation": "Zod schemas",
+      "real_time": "Socket.io"
+    }
+  },
+  "features": [
+    {
+      "name": "User Authentication",
+      "description": "Complete auth system with login, registration, JWT tokens, and user profiles",
+      "files": [
+        "backend/server.ts (lines 215-463)",
+        "vitereact/src/store/main.tsx (lines 384-625)",
+        "vitereact/src/components/views/UV_Authentication.tsx"
+      ],
+      "endpoints": ["/api/auth/login", "/api/auth/register", "/api/auth/logout", "/api/users/me"]
+    },
+    {
+      "name": "Property Search & Listings",
+      "description": "Advanced property search with filters, location-based results, and detailed property views",
+      "files": [
+        "backend/server.ts (lines 834-1046)",
+        "vitereact/src/components/views/UV_SearchResults.tsx",
+        "vitereact/src/components/views/UV_PropertyDetail.tsx",
+        "vitereact/src/components/views/UV_Landing.tsx"
+      ],
+      "endpoints": ["/api/properties"]
+    },
+    {
+      "name": "Booking Management",
+      "description": "Complete booking flow with date selection, guest management, and booking status tracking",
+      "files": [
+        "backend/server.ts (lines 1048-1329)",
+        "vitereact/src/components/views/UV_BookingFlow.tsx",
+        "vitereact/src/store/main.tsx (booking_state)"
+      ],
+      "endpoints": ["/api/bookings/:booking_id", "/api/bookings"]
+    },
+    {
+      "name": "Payment Processing",
+      "description": "Payment handling with multiple methods, transaction tracking, and refund management",
+      "files": [
+        "backend/server.ts (lines 1339-1515)",
+        "vitereact/src/components/views/UV_PaymentProcessing.tsx"
+      ],
+      "endpoints": ["/api/payments", "/api/payments/:payment_id"]
+    },
+    {
+      "name": "Real-time Messaging",
+      "description": "Chat system between guests and hosts with conversation management and real-time updates",
+      "files": [
+        "backend/server.ts (lines 1524-2000+)",
+        "vitereact/src/components/views/UV_MessageCenter.tsx",
+        "vitereact/src/store/main.tsx (WebSocket actions)"
+      ],
+      "endpoints": ["/api/conversations", "/api/messages"]
+    },
+    {
+      "name": "Property Management",
+      "description": "Host dashboard for managing properties, bookings, and analytics",
+      "files": [
+        "vitereact/src/components/views/UV_PropertyManagement.tsx",
+        "vitereact/src/store/main.tsx (property_management_state)"
+      ],
+      "endpoints": ["/api/properties", "/api/bookings"]
+    },
+    {
+      "name": "Investment Analytics",
+      "description": "ROI tracking, market data, and investment performance analysis for property investors",
+      "files": [
+        "vitereact/src/components/views/UV_InvestmentAnalytics.tsx",
+        "vitereact/src/store/main.tsx (investment_state)"
+      ],
+      "endpoints": ["/api/market-data", "/api/properties/:property_id/analytics"]
+    },
+    {
+      "name": "User Dashboard",
+      "description": "Personalized dashboard showing bookings, favorites, messages, and account management",
+      "files": [
+        "vitereact/src/components/views/UV_UserDashboard.tsx",
+        "vitereact/src/components/views/UV_UserProfile.tsx"
+      ],
+      "endpoints": ["/api/users/me", "/api/users/:user_id/favorites"]
+    },
+    {
+      "name": "Location & Weather Services",
+      "description": "Destination guides, weather data, and local attractions for hot climate destinations",
+      "files": [
+        "vitereact/src/components/views/UV_LocalGuides.tsx",
+        "vitereact/src/components/views/GV_WeatherWidget.tsx"
+      ],
+      "endpoints": ["/api/locations", "/api/locations/:location_id/weather", "/api/locations/:location_id/attractions"]
+    },
+    {
+      "name": "Review System",
+      "description": "Property reviews and ratings with detailed feedback categories",
+      "files": [
+        "vitereact/src/components/views/UV_ReviewSubmission.tsx"
+      ],
+      "endpoints": ["/api/reviews", "/api/properties/:property_id/reviews"]
+    },
+    {
+      "name": "Global Navigation & UI",
+      "description": "Responsive navigation, mobile support, notifications, and multi-language/currency support",
+      "files": [
+        "vitereact/src/components/views/GV_TopNav.tsx",
+        "vitereact/src/components/views/GV_MobileNav.tsx",
+        "vitereact/src/components/views/GV_Footer.tsx",
+        "vitereact/src/components/views/GV_NotificationPanel.tsx",
+        "vitereact/src/components/views/GV_CurrencySelector.tsx",
+        "vitereact/src/components/views/GV_LanguageSelector.tsx"
+      ],
+      "endpoints": ["/api/notifications", "/api/currency-rates"]
+    }
+  ],
+  "database_tables": [
+    "users",
+    "properties", 
+    "property_photos",
+    "bookings",
+    "payments",
+    "reviews",
+    "conversations",
+    "messages",
+    "property_availability",
+    "saved_searches",
+    "user_favorites",
+    "locations",
+    "weather_data",
+    "local_attractions",
+    "notifications",
+    "property_inquiries",
+    "investment_analytics",
+    "market_data",
+    "user_verification",
+    "currency_rates",
+    "system_alerts"
+  ],
+  "api_endpoints": [
+    "/api/auth/register",
+    "/api/auth/login", 
+    "/api/auth/logout",
+    "/api/auth/reset-password",
+    "/api/auth/verify-email",
+    "/api/users/me",
+    "/api/users/:user_id",
+    "/api/users/:user_id/verification",
+    "/api/users/:user_id/favorites",
+    "/api/properties",
+    "/api/bookings/:booking_id",
+    "/api/payments",
+    "/api/payments/:payment_id",
+    "/api/conversations",
+    "/api/conversations/:conversation_id",
+    "/api/conversations/:conversation_id/messages",
+    "/api/messages",
+    "/api/locations",
+    "/api/locations/:location_id/weather",
+    "/api/locations/:location_id/attractions",
+    "/api/properties/:property_id/reviews",
+    "/api/reviews",
+    "/api/currency-rates",
+    "/api/system-alerts",
+    "/api/market-data",
+    "/api/saved-searches",
+    "/api/notifications",
+    "/api/properties/:property_id/analytics",
+    "/api/health"
+  ],
+  "key_components": {
+    "authentication": "JWT-based with persistent storage",
+    "real_time": "Socket.io for live messaging and notifications", 
+    "state_management": "Zustand with persistence for global app state",
+    "ui_framework": "Radix UI components with Tailwind CSS styling",
+    "routing": "React Router with protected routes",
+    "data_fetching": "React Query for server state management",
+    "validation": "Zod schemas for both frontend and backend",
+    "database": "PostgreSQL with comprehensive seed data"
+  },
+  "deployment": {
+    "frontend_build": "Vite production build",
+    "backend_serve": "Express server with static file serving",
+    "database": "PostgreSQL with full schema and seed data",
+    "environment": "Docker-ready with fly.toml configuration"
+  }
+}

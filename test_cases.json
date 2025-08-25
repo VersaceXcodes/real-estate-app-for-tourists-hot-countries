@@ -1,0 +1,444 @@
+{
+  "generated_at": "2025-01-25T10:30:00Z",
+  "application_name": "SunVillas - Real Estate Platform for Hot Countries",
+  "total_test_cases": 25,
+  "categories": ["functionality", "interface", "content", "authentication", "booking", "messaging", "search", "navigation"],
+  "testCases": [
+    {
+      "id": "functional-app-test",
+      "name": "Functional Application Test",
+      "category": "functionality",
+      "priority": "high",
+      "description": "Verify the application has actual functionality beyond basic placeholder content",
+      "steps": [
+        "Navigate to application homepage",
+        "Verify multiple interactive elements exist (search bar, property cards, navigation menu)",
+        "Check for proper navigation structure with working links",
+        "Verify application shows real estate content, not just 'Vite + React' placeholder",
+        "Confirm presence of property listings, search functionality, and user features"
+      ],
+      "expectedOutcome": "Application displays a fully functional real estate platform with property listings, search capabilities, and interactive features",
+      "failureCondition": "If page only shows 'Vite + React' placeholder or lacks real estate functionality, this test should FAIL"
+    },
+    {
+      "id": "ui-components-test",
+      "name": "UI Components Test",
+      "category": "interface", 
+      "priority": "high",
+      "description": "Test that UI components are properly implemented and functional",
+      "steps": [
+        "Check for clickable buttons and verify they respond to clicks",
+        "Look for search forms and input fields",
+        "Verify navigation menu exists and is functional",
+        "Test responsive design elements on different screen sizes",
+        "Confirm presence of property cards, filters, and interactive elements"
+      ],
+      "expectedOutcome": "Multiple interactive UI components found and functional, including search, navigation, and property browsing features"
+    },
+    {
+      "id": "content-quality-test",
+      "name": "Content Quality Test",
+      "category": "content",
+      "priority": "high", 
+      "description": "Verify application has meaningful real estate content",
+      "steps": [
+        "Check page has substantial content beyond placeholder text",
+        "Verify proper heading structure for real estate platform",
+        "Look for actual property listings and descriptions",
+        "Ensure professional appearance appropriate for real estate business",
+        "Confirm presence of location-specific content for hot countries"
+      ],
+      "expectedOutcome": "Application demonstrates real estate functionality with professional design and meaningful content"
+    },
+    {
+      "id": "authentication-login-test",
+      "name": "User Authentication - Login",
+      "category": "authentication",
+      "priority": "high",
+      "description": "Test user login functionality with valid credentials",
+      "steps": [
+        "Navigate to login page (/auth?mode=login)",
+        "Enter valid credentials: john.host@example.com / password123",
+        "Click login button",
+        "Verify successful login and redirect to dashboard",
+        "Check that user profile information is displayed",
+        "Verify authentication token is stored"
+      ],
+      "expectedOutcome": "User successfully logs in and is redirected to authenticated dashboard with profile information visible",
+      "testData": {
+        "email": "john.host@example.com",
+        "password": "password123",
+        "expectedRole": "host"
+      }
+    },
+    {
+      "id": "authentication-registration-test", 
+      "name": "User Registration",
+      "category": "authentication",
+      "priority": "medium",
+      "description": "Test new user registration process",
+      "steps": [
+        "Navigate to registration page (/auth?mode=register)",
+        "Fill in registration form with valid data",
+        "Submit registration form",
+        "Verify successful account creation",
+        "Check automatic login after registration",
+        "Verify user profile is created"
+      ],
+      "expectedOutcome": "New user account is created successfully and user is automatically logged in",
+      "testData": {
+        "email": "newuser@test.com",
+        "password": "testpass123",
+        "first_name": "Test",
+        "last_name": "User"
+      }
+    },
+    {
+      "id": "property-search-test",
+      "name": "Property Search Functionality", 
+      "category": "search",
+      "priority": "high",
+      "description": "Test property search with various filters and criteria",
+      "steps": [
+        "Navigate to search page or use homepage search",
+        "Enter destination (e.g., 'Tulum, Mexico')",
+        "Set check-in and check-out dates",
+        "Specify number of guests",
+        "Apply filters (price range, property type, amenities)",
+        "Execute search and verify results are displayed",
+        "Check that results match search criteria"
+      ],
+      "expectedOutcome": "Search returns relevant property listings matching the specified criteria with proper filtering",
+      "testData": {
+        "destination": "Tulum, Mexico",
+        "guests": 4,
+        "property_type": "villa"
+      }
+    },
+    {
+      "id": "property-detail-view-test",
+      "name": "Property Detail View",
+      "category": "functionality",
+      "priority": "high",
+      "description": "Test detailed property information display",
+      "steps": [
+        "Navigate to a property listing from search results",
+        "Click on a property to view details",
+        "Verify property information is displayed (title, description, amenities)",
+        "Check photo gallery functionality",
+        "Verify pricing information and availability",
+        "Test booking button functionality",
+        "Check host information display"
+      ],
+      "expectedOutcome": "Property details page shows comprehensive information including photos, amenities, pricing, and booking options"
+    },
+    {
+      "id": "booking-flow-test",
+      "name": "Property Booking Flow",
+      "category": "booking", 
+      "priority": "high",
+      "description": "Test complete booking process from property selection to confirmation",
+      "steps": [
+        "Login as guest user (sarah.guest@example.com / user123)",
+        "Search and select a property",
+        "Click 'Book Now' button",
+        "Fill in booking details (dates, guests)",
+        "Review booking summary and pricing",
+        "Proceed to payment step",
+        "Verify booking confirmation"
+      ],
+      "expectedOutcome": "Complete booking flow works from property selection through payment confirmation",
+      "testData": {
+        "user": "sarah.guest@example.com",
+        "password": "user123"
+      }
+    },
+    {
+      "id": "host-dashboard-test",
+      "name": "Host Dashboard Functionality",
+      "category": "functionality",
+      "priority": "medium",
+      "description": "Test host-specific features and property management",
+      "steps": [
+        "Login as host user (john.host@example.com / password123)",
+        "Navigate to host dashboard (/host)",
+        "Verify property management interface is displayed",
+        "Check booking requests and calendar",
+        "Test property analytics and performance metrics",
+        "Verify ability to manage property settings"
+      ],
+      "expectedOutcome": "Host dashboard displays property management tools, booking requests, and analytics",
+      "testData": {
+        "user": "john.host@example.com", 
+        "password": "password123"
+      }
+    },
+    {
+      "id": "messaging-system-test",
+      "name": "Real-time Messaging System",
+      "category": "messaging",
+      "priority": "medium",
+      "description": "Test messaging functionality between guests and hosts",
+      "steps": [
+        "Login as guest user",
+        "Navigate to messages section (/messages)",
+        "Start new conversation or open existing one",
+        "Send a message",
+        "Verify message appears in conversation",
+        "Test real-time message delivery",
+        "Check message read status"
+      ],
+      "expectedOutcome": "Messaging system allows communication between users with real-time updates"
+    },
+    {
+      "id": "favorites-system-test",
+      "name": "Property Favorites System",
+      "category": "functionality",
+      "priority": "medium", 
+      "description": "Test ability to save and manage favorite properties",
+      "steps": [
+        "Login as guest user",
+        "Browse properties and click 'Add to Favorites' on a property",
+        "Navigate to favorites section",
+        "Verify property appears in favorites list",
+        "Test removing property from favorites",
+        "Verify favorites persist across sessions"
+      ],
+      "expectedOutcome": "Users can successfully add, view, and remove properties from their favorites list"
+    },
+    {
+      "id": "user-profile-test",
+      "name": "User Profile Management",
+      "category": "functionality",
+      "priority": "medium",
+      "description": "Test user profile viewing and editing capabilities",
+      "steps": [
+        "Login with any user account",
+        "Navigate to profile page (/profile)",
+        "Verify profile information is displayed correctly",
+        "Test editing profile information",
+        "Save changes and verify updates persist",
+        "Check profile photo upload functionality"
+      ],
+      "expectedOutcome": "User can view and successfully update their profile information"
+    },
+    {
+      "id": "navigation-structure-test",
+      "name": "Navigation Structure Test",
+      "category": "navigation",
+      "priority": "high",
+      "description": "Test main navigation and routing functionality",
+      "steps": [
+        "Test main navigation menu links",
+        "Verify all major pages are accessible (Home, Search, Dashboard, Profile)",
+        "Test mobile navigation menu",
+        "Check breadcrumb navigation where applicable",
+        "Verify back button functionality",
+        "Test deep linking to specific pages"
+      ],
+      "expectedOutcome": "All navigation elements work correctly and pages are accessible via proper routing"
+    },
+    {
+      "id": "responsive-design-test",
+      "name": "Responsive Design Test",
+      "category": "interface",
+      "priority": "medium",
+      "description": "Test application responsiveness across different screen sizes",
+      "steps": [
+        "Test application on desktop resolution (1920x1080)",
+        "Test on tablet resolution (768x1024)",
+        "Test on mobile resolution (375x667)",
+        "Verify mobile navigation menu works",
+        "Check that content adapts properly to screen size",
+        "Test touch interactions on mobile"
+      ],
+      "expectedOutcome": "Application displays and functions properly across all screen sizes with appropriate responsive behavior"
+    },
+    {
+      "id": "search-filters-test",
+      "name": "Advanced Search Filters",
+      "category": "search",
+      "priority": "medium",
+      "description": "Test advanced filtering options in property search",
+      "steps": [
+        "Navigate to search page",
+        "Apply price range filter",
+        "Filter by property type (villa, apartment, etc.)",
+        "Filter by amenities (pool, wifi, etc.)",
+        "Apply location-based filters",
+        "Test multiple filters simultaneously",
+        "Verify results update correctly with each filter"
+      ],
+      "expectedOutcome": "Search filters work correctly and results update appropriately when filters are applied"
+    },
+    {
+      "id": "payment-processing-test",
+      "name": "Payment Processing Interface",
+      "category": "booking",
+      "priority": "high",
+      "description": "Test payment interface and processing flow",
+      "steps": [
+        "Complete booking flow to payment step",
+        "Verify payment form is displayed",
+        "Test payment method selection",
+        "Enter payment information",
+        "Submit payment (test mode)",
+        "Verify payment confirmation",
+        "Check booking status updates"
+      ],
+      "expectedOutcome": "Payment interface displays correctly and processes test payments successfully"
+    },
+    {
+      "id": "location-weather-test",
+      "name": "Location and Weather Information",
+      "category": "content",
+      "priority": "low",
+      "description": "Test location-specific information and weather data display",
+      "steps": [
+        "Navigate to destination guides (/destinations)",
+        "Select a hot climate destination",
+        "Verify location information is displayed",
+        "Check weather widget functionality",
+        "Test local attractions display",
+        "Verify destination-specific content"
+      ],
+      "expectedOutcome": "Location pages display relevant information including weather data and local attractions"
+    },
+    {
+      "id": "investment-analytics-test",
+      "name": "Investment Analytics Dashboard",
+      "category": "functionality",
+      "priority": "low",
+      "description": "Test investment tracking and analytics features",
+      "steps": [
+        "Login as host with investment properties",
+        "Navigate to investment analytics (/investments)",
+        "Verify ROI calculations are displayed",
+        "Check market data visualization",
+        "Test performance metrics",
+        "Verify investment portfolio overview"
+      ],
+      "expectedOutcome": "Investment analytics display comprehensive financial data and performance metrics"
+    },
+    {
+      "id": "notification-system-test",
+      "name": "Notification System",
+      "category": "functionality",
+      "priority": "medium",
+      "description": "Test notification display and management",
+      "steps": [
+        "Login to user account",
+        "Check notification panel/icon",
+        "Verify unread notification count",
+        "Open notification panel",
+        "Test marking notifications as read",
+        "Check system alerts display"
+      ],
+      "expectedOutcome": "Notification system displays alerts and allows proper management of notification status"
+    },
+    {
+      "id": "multi-language-test",
+      "name": "Multi-language Support",
+      "category": "interface",
+      "priority": "low",
+      "description": "Test language switching functionality",
+      "steps": [
+        "Locate language selector in navigation",
+        "Switch between available languages",
+        "Verify interface text updates",
+        "Check that language preference persists",
+        "Test with different user accounts"
+      ],
+      "expectedOutcome": "Language switching works correctly and preferences are maintained across sessions"
+    },
+    {
+      "id": "currency-conversion-test",
+      "name": "Currency Conversion",
+      "category": "functionality",
+      "priority": "medium",
+      "description": "Test currency selection and price conversion",
+      "steps": [
+        "Locate currency selector",
+        "Switch between different currencies (USD, EUR, GBP)",
+        "Verify property prices update correctly",
+        "Check currency symbols and formatting",
+        "Test currency preference persistence"
+      ],
+      "expectedOutcome": "Currency conversion works accurately and preferences are saved"
+    },
+    {
+      "id": "error-handling-test",
+      "name": "Error Handling and Validation",
+      "category": "functionality",
+      "priority": "medium",
+      "description": "Test application error handling and form validation",
+      "steps": [
+        "Test form submission with invalid data",
+        "Try accessing protected pages without authentication",
+        "Test network error scenarios",
+        "Verify error messages are user-friendly",
+        "Check that application recovers gracefully from errors"
+      ],
+      "expectedOutcome": "Application handles errors gracefully with appropriate user feedback and recovery mechanisms"
+    },
+    {
+      "id": "performance-test",
+      "name": "Application Performance",
+      "category": "functionality",
+      "priority": "low",
+      "description": "Test application loading speed and performance",
+      "steps": [
+        "Measure initial page load time",
+        "Test navigation speed between pages",
+        "Check image loading performance",
+        "Test search result loading speed",
+        "Verify smooth scrolling and interactions"
+      ],
+      "expectedOutcome": "Application loads quickly and provides smooth user experience with reasonable performance"
+    },
+    {
+      "id": "data-persistence-test",
+      "name": "Data Persistence Test",
+      "category": "functionality",
+      "priority": "medium",
+      "description": "Test that user data and preferences persist correctly",
+      "steps": [
+        "Login and make changes to profile",
+        "Add properties to favorites",
+        "Set language and currency preferences",
+        "Logout and login again",
+        "Verify all changes and preferences are maintained",
+        "Test across browser sessions"
+      ],
+      "expectedOutcome": "User data, preferences, and session state persist correctly across login sessions"
+    },
+    {
+      "id": "security-test",
+      "name": "Basic Security Test",
+      "category": "functionality",
+      "priority": "high",
+      "description": "Test basic security measures and access controls",
+      "steps": [
+        "Try accessing protected routes without authentication",
+        "Test with invalid authentication tokens",
+        "Verify user can only access their own data",
+        "Test logout functionality clears session",
+        "Check that sensitive information is not exposed in client"
+      ],
+      "expectedOutcome": "Application properly protects routes and user data with appropriate access controls"
+    }
+  ],
+  "test_execution_notes": {
+    "browser_compatibility": "Test in Chrome, Firefox, Safari, and Edge",
+    "mobile_testing": "Test on iOS Safari and Android Chrome",
+    "test_data_requirements": "Use provided test users from test_users.json",
+    "environment_setup": "Ensure backend server is running on localhost:3000",
+    "critical_failures": "Tests marked as 'high' priority must pass for application to be considered functional"
+  },
+  "success_criteria": {
+    "minimum_passing_tests": 20,
+    "critical_test_failures_allowed": 0,
+    "overall_functionality_score": "80%",
+    "user_experience_rating": "Good"
+  }
+}
