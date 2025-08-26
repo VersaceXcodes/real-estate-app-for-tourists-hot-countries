@@ -8,7 +8,8 @@ RUN npm install --save-dev eslint-plugin-import eslint-plugin-react @typescript-
 RUN npm install --save-dev eslint-import-resolver-typescript
 # Copy the rest of the frontend files and build
 COPY vitereact ./
-
+# Clear any existing build artifacts to force fresh build
+RUN rm -rf dist/ public/ build/
 RUN npm run build
 
 # Stage 2: Set up the Node.js backend
