@@ -84,14 +84,14 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: "https://real-estate-app-for-tourists-hot-countries.fly.dev",
     methods: ["GET", "POST"]
   }
 });
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: 'https://real-estate-app-for-tourists-hot-countries.fly.dev',
   credentials: true,
 }));
 app.use(express.json({ limit: "5mb" }));
