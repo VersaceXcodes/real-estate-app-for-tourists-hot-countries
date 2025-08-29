@@ -3,7 +3,7 @@ import { Link, useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '@/store/main';
 import axios from 'axios';
-import { isValidDateString, getTodayDateString, getMaxBookingDate } from '@/lib/utils';
+import { getTodayDateString, getMaxBookingDate } from '@/lib/utils';
 
 // Interfaces for API responses
 interface PropertyPhoto {
