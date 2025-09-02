@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAppStore } from '@/store/main';
-import { isValidDateString, getTodayDateString, getMaxBookingDate } from '@/lib/utils';
 
 // Types for API responses
 interface LocationSuggestion {
@@ -33,9 +32,7 @@ interface SavedSearchResponse {
 interface LocationsResponse {
   locations: LocationSuggestion[];
   total: number;
-}
-
-    // API functions
+}/api// API functions
 const fetchDestinationSuggestions = async (query: string): Promise<LocationSuggestion[]> => {
   if (!query || query.length < 2) return [];
   
@@ -124,7 +121,7 @@ const GV_SearchBar: React.FC = () => {
   const currentUser = useAppStore(state => state.authentication_state.current_user);
   const authToken = useAppStore(state => state.authentication_state.auth_token);
   const globalSearchState = useAppStore(state => state.search_state);
-
+  const currency = useAppStore(state => state.user_preferences.currency);
   const updateSearchCriteria = useAppStore(state => state.update_search_criteria);
   
   // Local state
@@ -206,40 +203,28 @@ const GV_SearchBar: React.FC = () => {
 
   // Validation
   const validateDates = useCallback(() => {
-    const errors: { check_in: string | null; check_out: string | null; date_range: string | null } = { check_in: null, check_out: null, date_range: null };
+    const errors = { check_in: null, check_out: null, date_range: null };
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // Only validate if we have valid date strings
-    if (checkInDate && isValidDateString(checkInDate)) {
+    if (checkInDate) {
       const checkIn = new Date(checkInDate);
-      if (isNaN(checkIn.getTime())) {
-        errors.check_in = 'Please enter a valid check-in date';
-      } else if (checkIn < today) {
+      if (checkIn < today) {
         errors.check_in = 'Check-in date cannot be in the past';
       }
     }
     
-    if (checkOutDate && isValidDateString(checkOutDate)) {
-      const checkOut = new Date(checkOutDate);
-      if (isNaN(checkOut.getTime())) {
-        errors.check_out = 'Please enter a valid check-out date';
-      }
-    }
-    
-    if (checkInDate && checkOutDate && isValidDateString(checkInDate) && isValidDateString(checkOutDate)) {
+    if (checkInDate && checkOutDate) {
       const checkIn = new Date(checkInDate);
       const checkOut = new Date(checkOutDate);
       
-      if (!isNaN(checkIn.getTime()) && !isNaN(checkOut.getTime())) {
-        if (checkOut <= checkIn) {
-          errors.date_range = 'Check-out date must be after check-in date';
-        }
-        
-        const daysDiff = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
-        if (daysDiff > 365) {
-          errors.date_range = 'Maximum stay is 365 days';
-        }
+      if (checkOut <= checkIn) {
+        errors.date_range = 'Check-out date must be after check-in date';
+      }
+      
+      const daysDiff = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysDiff > 365) {
+        errors.date_range = 'Maximum stay is 365 days';
       }
     }
     
@@ -293,25 +278,9 @@ const GV_SearchBar: React.FC = () => {
 
   // Handle search execution
   const handleSearch = () => {
-    // Validate dates before search
-    const isValid = validateDates();
-    
-    // Check for incomplete date inputs
-    if (checkInDate && !isValidDateString(checkInDate)) {
-      setDateValidationErrors(prev => ({ ...prev, check_in: 'Please enter a valid check-in date' }));
+    if (!validateDates()) {
       return;
-    }
-    
-    if (checkOutDate && !isValidDateString(checkOutDate)) {
-      setDateValidationErrors(prev => ({ ...prev, check_out: 'Please enter a valid check-out date' }));
-      return;
-    }
-    
-    if (!isValid) {
-      return;
-    }
-
-    // Update global search state
+    }/api// Update global search state
     updateSearchCriteria({
       destination: destination || null,
       check_in_date: checkInDate || null,
@@ -346,9 +315,18 @@ const GV_SearchBar: React.FC = () => {
     });
   };
 
+  // Get minimum date (today)
+  const minDate = useMemo(() => {
+    return new Date().toISOString().split('T')[0];
+  }, []);
 
-
-
+  // Get minimum check-out date (day after check-in)
+  const minCheckOutDate = useMemo(() => {
+    if (!checkInDate) return minDate;
+    const checkIn = new Date(checkInDate);
+    checkIn.setDate(checkIn.getDate() + 1);
+    return checkIn.toISOString().split('T')[0];
+  }, [checkInDate, minDate]);
 
   return (
     <>
@@ -470,14 +448,12 @@ const GV_SearchBar: React.FC = () => {
                     type="date"
                     value={checkInDate}
                     onChange={(e) => {
-                      const value = e.target.value;
-                      setCheckInDate(value);
+                      setCheckInDate(e.target.value);
                       if (dateValidationErrors.check_in) {
                         setDateValidationErrors(prev => ({ ...prev, check_in: null }));
                       }
                     }}
-                    min={getTodayDateString()}
-                    max={getMaxBookingDate()}
+                    min={minDate}
                     className={`px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                       dateValidationErrors.check_in ? 'border-red-300' : 'border-gray-300'
                     }`}
@@ -495,14 +471,12 @@ const GV_SearchBar: React.FC = () => {
                     type="date"
                     value={checkOutDate}
                     onChange={(e) => {
-                      const value = e.target.value;
-                      setCheckOutDate(value);
+                      setCheckOutDate(e.target.value);
                       if (dateValidationErrors.check_out || dateValidationErrors.date_range) {
                         setDateValidationErrors(prev => ({ ...prev, check_out: null, date_range: null }));
                       }
                     }}
-                    min={checkInDate || getTodayDateString()}
-                    max={getMaxBookingDate()}
+                    min={minCheckOutDate}
                     className={`px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                       dateValidationErrors.check_out || dateValidationErrors.date_range ? 'border-red-300' : 'border-gray-300'
                     }`}
@@ -624,7 +598,7 @@ const GV_SearchBar: React.FC = () => {
                 <div className="flex-shrink-0 flex items-end">
                   <button
                     onClick={handleSearch}
-                    disabled={!destination}
+                    disabled={!destination || !!dateValidationErrors.check_in || !!dateValidationErrors.check_out || !!dateValidationErrors.date_range}
                     className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium flex items-center space-x-2"
                     aria-label="Search properties"
                   >
@@ -689,7 +663,7 @@ const GV_SearchBar: React.FC = () => {
               setShowGuestDropdown(false);
               setShowRecentSearches(false);
               setShowPopularDestinations(false);
-            }}/>
+            }}/api/>
         )}
       </div>
     </>

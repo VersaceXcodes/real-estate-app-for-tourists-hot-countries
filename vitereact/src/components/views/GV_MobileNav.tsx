@@ -10,7 +10,7 @@ const GV_MobileNav: React.FC = () => {
   const isAuthenticated = useAppStore(state => state.authentication_state.authentication_status.is_authenticated);
   const currentUser = useAppStore(state => state.authentication_state.current_user);
   const unreadMessages = useAppStore(state => state.notifications_state.unread_messages);
-
+  const unreadNotifications = useAppStore(state => state.notifications_state.unread_notifications);
   const currency = useAppStore(state => state.user_preferences.currency);
   const language = useAppStore(state => state.user_preferences.language);
   const logoutUser = useAppStore(state => state.logout_user);

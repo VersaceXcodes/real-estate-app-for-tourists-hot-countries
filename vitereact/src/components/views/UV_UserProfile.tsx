@@ -21,7 +21,11 @@ interface ProfileFormData {
   government_id_number: string;
 }
 
-
+interface VerificationData {
+  verification_type: string;
+  document_url: string;
+  status: string;
+}
 
 interface SavedSearch {
   search_id: string;
@@ -43,7 +47,7 @@ const UV_UserProfile: React.FC = () => {
   // Zustand selectors - CRITICAL: Individual selectors to avoid infinite loops
   const currentUser = useAppStore(state => state.authentication_state.current_user);
   const authToken = useAppStore(state => state.authentication_state.auth_token);
-
+  const userPreferences = useAppStore(state => state.user_preferences);
   const updateUserProfile = useAppStore(state => state.update_user_profile);
   const updateCurrency = useAppStore(state => state.update_currency);
   const updateLanguage = useAppStore(state => state.update_language);
@@ -94,7 +98,7 @@ const UV_UserProfile: React.FC = () => {
   }, [activeSection, setSearchParams, searchParams]);
 
   // Fetch user profile data
-  const { data: userProfileData, isLoading: profileLoading } = useQuery({
+  const { data: userProfileData, isLoading: profileLoading, error: profileError } = useQuery({
     queryKey: ['userProfile'],
     queryFn: async () => {
       const response = await axios.get(
@@ -193,7 +197,7 @@ const UV_UserProfile: React.FC = () => {
   const submitVerificationMutation = useMutation({
     mutationFn: async ({ verificationType, documentUrl }: { verificationType: string; documentUrl: string }) => {
       const response = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser?.user_id}/verification`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser?.user_id}/api/verification`,
         {
           verification_type: verificationType,
           document_url: documentUrl
@@ -254,9 +258,9 @@ const UV_UserProfile: React.FC = () => {
   };
 
   const handleVerificationSubmit = (verificationType: string) => {
-    // File upload handling for verification documents
-    const documentUrl = `https://example.com/documents/${Date.now()}.pdf`;
-    submitVerificationMutation.mutate({ verificationType, documentUrl });
+    // Mock file upload - in real implementation, this would handle file upload
+    const mockDocumentUrl = `https://example.com/documents/${Date.now()}.pdf`;
+    submitVerificationMutation.mutate({ verificationType, documentUrl: mockDocumentUrl });
   };
 
   const handleNotificationChange = (setting: string, value: boolean) => {
@@ -457,8 +461,8 @@ const UV_UserProfile: React.FC = () => {
                         onChange={(e) => handleInputChange('bio', e.target.value)}
                         placeholder="Tell us about yourself..."
                         className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                        maxLength={500}/>
-                      <p className="mt-2 text-sm text-gray-500">{profileFormData.bio.length}/500 characters</p>
+                        maxLength={500}/api/>
+                      <p className="mt-2 text-sm text-gray-500">{profileFormData.bio.length}/api/500 characters</p>
                     </div>
 
                     {/* Languages Spoken */}

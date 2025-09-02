@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useSearchParams, Link } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAppStore } from '@/store/main';
@@ -70,7 +70,7 @@ interface TransactionStatus {
 const UV_PaymentProcessing: React.FC = () => {
   const { booking_id } = useParams<{ booking_id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
-
+  const navigate = useNavigate();
 
   // Global state access
   const currentUser = useAppStore(state => state.authentication_state.current_user);
@@ -113,7 +113,7 @@ const UV_PaymentProcessing: React.FC = () => {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [savePaymentMethod, setSavePaymentMethod] = useState(false);
 
-  // Available payment methods
+  // Available payment methods (mock data since endpoint is missing)
   const paymentMethods: PaymentMethod[] = [
     {
       method_id: 'credit_card',
@@ -187,7 +187,7 @@ const UV_PaymentProcessing: React.FC = () => {
       }));
       setPaymentProcessing(true);
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       setTransactionStatus(prev => ({
         ...prev,
         is_processing: false,
@@ -345,9 +345,7 @@ const UV_PaymentProcessing: React.FC = () => {
         </div>
       </>
     );
-  }
-
-    // Loading state
+  }/api// Loading state
   if (bookingLoading) {
     return (
       <>
@@ -359,9 +357,7 @@ const UV_PaymentProcessing: React.FC = () => {
         </div>
       </>
     );
-  }
-
-    // Error state
+  }/api// Error state
   if (bookingError || !bookingContext) {
     return (
       <>
@@ -420,7 +416,7 @@ const UV_PaymentProcessing: React.FC = () => {
                       <div
                         className={`w-16 h-1 ${
                           step < currentStep ? 'bg-blue-600' : 'bg-gray-300'
-                        }`}/>
+                        }`}/api/>
                     )}
                   </div>
                 ))}
@@ -560,7 +556,7 @@ const UV_PaymentProcessing: React.FC = () => {
                             placeholder="1234 5678 9012 3456"
                             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                               formErrors.card_number ? 'border-red-500' : 'border-gray-300'
-                            }`}/>
+                            }`}/api/>
                           {formErrors.card_number && (
                             <p className="text-red-600 text-sm mt-1">{formErrors.card_number}</p>
                           )}
@@ -581,7 +577,7 @@ const UV_PaymentProcessing: React.FC = () => {
                             placeholder="John Doe"
                             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                               formErrors.cardholder_name ? 'border-red-500' : 'border-gray-300'
-                            }`}/>
+                            }`}/api/>
                           {formErrors.cardholder_name && (
                             <p className="text-red-600 text-sm mt-1">{formErrors.cardholder_name}</p>
                           )}
@@ -651,7 +647,7 @@ const UV_PaymentProcessing: React.FC = () => {
                               maxLength={4}
                               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                                 formErrors.cvv ? 'border-red-500' : 'border-gray-300'
-                              }`}/>
+                              }`}/api/>
                             {formErrors.cvv && (
                               <p className="text-red-600 text-sm mt-1">{formErrors.cvv}</p>
                             )}
@@ -702,7 +698,7 @@ const UV_PaymentProcessing: React.FC = () => {
                             }}
                             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                               formErrors.street_address ? 'border-red-500' : 'border-gray-300'
-                            }`}/>
+                            }`}/api/>
                           {formErrors.street_address && (
                             <p className="text-red-600 text-sm mt-1">{formErrors.street_address}</p>
                           )}
@@ -723,7 +719,7 @@ const UV_PaymentProcessing: React.FC = () => {
                               }}
                               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                                 formErrors.city ? 'border-red-500' : 'border-gray-300'
-                              }`}/>
+                              }`}/api/>
                             {formErrors.city && (
                               <p className="text-red-600 text-sm mt-1">{formErrors.city}</p>
                             )}
@@ -757,7 +753,7 @@ const UV_PaymentProcessing: React.FC = () => {
                               }}
                               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                                 formErrors.postal_code ? 'border-red-500' : 'border-gray-300'
-                              }`}/>
+                              }`}/api/>
                             {formErrors.postal_code && (
                               <p className="text-red-600 text-sm mt-1">{formErrors.postal_code}</p>
                             )}

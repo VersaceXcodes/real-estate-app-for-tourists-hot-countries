@@ -37,20 +37,20 @@ export const createUserInputSchema = z.object({
   password: z.string().min(8).max(100),
   first_name: z.string().min(1).max(255),
   last_name: z.string().min(1).max(255),
-  phone_number: z.string().max(50).nullable().optional(),
-  profile_photo_url: z.string().url().max(500).nullable().optional(),
+  phone_number: z.string().max(50).nullable(),
+  profile_photo_url: z.string().url().max(500).nullable(),
   user_type: z.enum(['guest', 'host', 'admin']).default('guest'),
-  bio: z.string().max(1000).nullable().optional(),
-  languages_spoken: z.array(z.string()).nullable().optional(),
+  bio: z.string().max(1000).nullable(),
+  languages_spoken: z.array(z.string()).nullable(),
   currency: z.string().length(3).default('USD'),
   language: z.string().length(2).default('en'),
   temperature_unit: z.enum(['celsius', 'fahrenheit']).default('celsius'),
   notification_settings: z.record(z.boolean()).default({}),
-  emergency_contact_name: z.string().max(255).nullable().optional(),
-  emergency_contact_phone: z.string().max(50).nullable().optional(),
-  address: z.string().nullable().optional(),
-  date_of_birth: z.string().max(20).nullable().optional(),
-  government_id_number: z.string().max(100).nullable().optional()
+  emergency_contact_name: z.string().max(255).nullable(),
+  emergency_contact_phone: z.string().max(50).nullable(),
+  address: z.string().nullable(),
+  date_of_birth: z.string().max(20).nullable(),
+  government_id_number: z.string().max(100).nullable()
 });
 
 export const updateUserInputSchema = z.object({
@@ -138,29 +138,29 @@ export const createPropertyInputSchema = z.object({
   property_type: z.string().min(1).max(100),
   country: z.string().min(1).max(100),
   city: z.string().min(1).max(100),
-  region: z.string().max(100).nullable().optional(),
-  neighborhood: z.string().max(100).nullable().optional(),
+  region: z.string().max(100).nullable(),
+  neighborhood: z.string().max(100).nullable(),
   address: z.string().min(1),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
   bedrooms: z.number().int().min(0).max(50),
   bathrooms: z.number().min(0).max(50),
   guest_count: z.number().int().min(1).max(100),
-  property_size: z.number().positive().nullable().optional(),
-  distance_beach: z.number().nonnegative().nullable().optional(),
-  distance_airport: z.number().nonnegative().nullable().optional(),
+  property_size: z.number().positive().nullable(),
+  distance_beach: z.number().nonnegative().nullable(),
+  distance_airport: z.number().nonnegative().nullable(),
   base_price_per_night: z.number().positive(),
   currency: z.string().length(3).default('USD'),
-  cleaning_fee: z.number().nonnegative().nullable().optional(),
-  security_deposit: z.number().nonnegative().nullable().optional(),
-  extra_guest_fee: z.number().nonnegative().nullable().optional(),
-  pet_fee: z.number().nonnegative().nullable().optional(),
+  cleaning_fee: z.number().nonnegative().nullable(),
+  security_deposit: z.number().nonnegative().nullable(),
+  extra_guest_fee: z.number().nonnegative().nullable(),
+  pet_fee: z.number().nonnegative().nullable(),
   amenities: z.array(z.string()).default([]),
   house_rules: z.array(z.string()).default([]),
   check_in_time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).default('15:00'),
   check_out_time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).default('11:00'),
   minimum_stay: z.number().int().min(1).default(1),
-  maximum_stay: z.number().int().positive().nullable().optional(),
+  maximum_stay: z.number().int().positive().nullable(),
   instant_booking: z.boolean().default(false),
   host_language: z.array(z.string()).default([]),
   cancellation_policy: z.enum(['flexible', 'moderate', 'strict']).default('moderate')
@@ -241,9 +241,9 @@ export const propertyPhotoSchema = z.object({
 export const createPropertyPhotoInputSchema = z.object({
   property_id: z.string(),
   photo_url: z.string().url().max(500),
-  photo_order: z.number().int().min(1).optional(),
+  photo_order: z.number().int().min(1),
   is_cover_photo: z.boolean().default(false),
-  alt_text: z.string().max(500).nullable().optional()
+  alt_text: z.string().max(500).nullable()
 });
 
 export const updatePropertyPhotoInputSchema = z.object({
@@ -294,14 +294,7 @@ export const createBookingInputSchema = z.object({
   adults: z.number().int().min(1).max(100),
   children: z.number().int().min(0).default(0),
   infants: z.number().int().min(0).default(0),
-  special_requests: z.string().max(1000).nullable().optional()
-}).refine((data) => {
-  const checkIn = new Date(data.check_in_date);
-  const checkOut = new Date(data.check_out_date);
-  return checkOut > checkIn;
-}, {
-  message: "Check-out date must be after check-in date",
-  path: ["check_out_date"]
+  special_requests: z.string().max(1000).nullable()
 });
 
 export const updateBookingInputSchema = z.object({
@@ -350,7 +343,8 @@ export const createPaymentInputSchema = z.object({
   amount: z.number().positive(),
   currency: z.string().length(3),
   payment_method: z.enum(['credit_card', 'debit_card', 'paypal', 'bank_transfer']),
-  transaction_id: z.string().max(255).nullable().optional()});
+  transaction_id: z.string().max(255).nullable()
+});
 
 export const updatePaymentInputSchema = z.object({
   payment_id: z.string(),
@@ -390,6 +384,7 @@ export const reviewSchema = z.object({
 export const createReviewInputSchema = z.object({
   booking_id: z.string(),
   property_id: z.string(),
+  reviewer_id: z.string(),
   overall_rating: z.number().int().min(1).max(5),
   cleanliness_rating: z.number().int().min(1).max(5),
   accuracy_rating: z.number().int().min(1).max(5),
@@ -439,12 +434,12 @@ export const conversationSchema = z.object({
 });
 
 export const createConversationInputSchema = z.object({
-  property_id: z.string().nullable().optional(),
-  booking_id: z.string().nullable().optional(),
+  property_id: z.string().nullable(),
+  booking_id: z.string().nullable(),
   guest_id: z.string(),
   host_id: z.string(),
   conversation_type: z.enum(['inquiry', 'booking', 'support']).default('inquiry'),
-  subject: z.string().max(500).nullable().optional()
+  subject: z.string().max(500).nullable()
 });
 
 export const updateConversationInputSchema = z.object({
@@ -474,7 +469,7 @@ export const createMessageInputSchema = z.object({
   conversation_id: z.string(),
   sender_id: z.string(),
   message_text: z.string().min(1).max(5000),
-  attachments: z.array(z.string().url()).max(10).nullable().optional(),
+  attachments: z.array(z.string().url()).max(10).nullable(),
   message_type: z.enum(['text', 'image', 'document']).default('text'),
   is_automated: z.boolean().default(false)
 });

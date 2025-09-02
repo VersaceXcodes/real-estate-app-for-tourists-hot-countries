@@ -63,7 +63,14 @@ interface CreateMessagePayload {
   is_automated?: boolean;
 }
 
-
+interface CreateConversationPayload {
+  property_id?: string;
+  booking_id?: string;
+  guest_id: string;
+  host_id: string;
+  conversation_type?: 'inquiry' | 'booking' | 'support';
+  subject?: string;
+}
 
 const UV_MessageCenter: React.FC = () => {
   // Router hooks
@@ -117,7 +124,7 @@ const UV_MessageCenter: React.FC = () => {
 
   const fetchConversationMessages = async (conversationId: string): Promise<{ messages: Message[]; total: number }> => {
     const response = await axios.get(
-      `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/conversations/${conversationId}/messages`,
+      `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/conversations/${conversationId}/api/messages`,
       {
         headers: { Authorization: `Bearer ${authToken}` },
         params: { limit: 50, offset: 0 }
@@ -143,7 +150,14 @@ const UV_MessageCenter: React.FC = () => {
     );
   };
 
-
+  const createConversation = async (payload: CreateConversationPayload): Promise<Conversation> => {
+    const response = await axios.post(
+      `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/conversations`,
+      payload,
+      { headers: { Authorization: `Bearer ${authToken}` } }
+    );
+    return response.data;
+  };
 
   // React Query hooks
   const {
@@ -222,7 +236,7 @@ const UV_MessageCenter: React.FC = () => {
   const filteredConversations = useMemo(() => {
     if (!conversationsData?.conversations) return [];
     
-    const filtered = conversationsData.conversations.filter(conv => {
+    let filtered = conversationsData.conversations.filter(conv => {
       // Search filter
       if (searchQuery) {
         const searchLower = searchQuery.toLowerCase();
@@ -235,9 +249,7 @@ const UV_MessageCenter: React.FC = () => {
         const matchesProperty = conv.property?.title?.toLowerCase().includes(searchLower);
         
         if (!matchesTitle && !matchesUser && !matchesProperty) return false;
-      }
-
-    // Type filter
+      }/api// Type filter
       if (filterType !== 'all' && conv.conversation_type !== filterType) return false;
       
       return true;
@@ -249,9 +261,7 @@ const UV_MessageCenter: React.FC = () => {
         const aUnread = a.unread_count || 0;
         const bUnread = b.unread_count || 0;
         if (aUnread !== bUnread) return bUnread - aUnread;
-      }
-
-    // Default sort by date
+      }/api// Default sort by date
       const aDate = new Date(a.last_message_at || a.created_at).getTime();
       const bDate = new Date(b.last_message_at || b.created_at).getTime();
       return bDate - aDate;
@@ -273,13 +283,6 @@ const UV_MessageCenter: React.FC = () => {
       : activeConversation.guest;
   }, [activeConversation, currentUser]);
 
-  // Scroll to bottom effect
-  const scrollToBottom = useCallback(() => {
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
-  }, []);
-
   // WebSocket effects
   useEffect(() => {
     if (!socket || !isConnected) return;
@@ -287,9 +290,7 @@ const UV_MessageCenter: React.FC = () => {
     // Join conversation room
     if (activeConversationId) {
       joinConversation(activeConversationId);
-    }
-
-    // Listen for real-time events
+    }/api// Listen for real-time events
     const handleMessageReceived = (data: any) => {
       if (data.conversation_id === activeConversationId) {
         // Add message to cache
@@ -343,7 +344,7 @@ const UV_MessageCenter: React.FC = () => {
         leaveConversation(activeConversationId);
       }
     };
-  }, [socket, isConnected, activeConversationId, currentUser, joinConversation, leaveConversation, queryClient, setUnreadMessages, unreadMessages, refetchConversations, scrollToBottom]);
+  }, [socket, isConnected, activeConversationId, currentUser, joinConversation, leaveConversation, queryClient, setUnreadMessages, unreadMessages]);
 
   // Mark messages as read when viewing conversation
   useEffect(() => {
@@ -358,6 +359,13 @@ const UV_MessageCenter: React.FC = () => {
     }
   }, [messagesData?.messages, activeConversationId, currentUser, markReadMutation]);
 
+  // Scroll to bottom effect
+  const scrollToBottom = useCallback(() => {
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  }, []);
+
   useEffect(() => {
     scrollToBottom();
   }, [messagesData?.messages, scrollToBottom]);
@@ -369,14 +377,10 @@ const UV_MessageCenter: React.FC = () => {
     if (!isTyping && text.length > 0 && activeConversationId) {
       setIsTyping(true);
       sendTypingIndicator(activeConversationId, true);
-    }
-
-    // Clear previous timeout
+    }/api// Clear previous timeout
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
-    }
-
-    // Set new timeout
+    }/api// Set new timeout
     typingTimeoutRef.current = setTimeout(() => {
       if (isTyping && activeConversationId) {
         setIsTyping(false);
@@ -791,14 +795,14 @@ const UV_MessageCenter: React.FC = () => {
                   </button>
                   
                   <img
-                    src={getUserAvatar(otherParticipant || undefined)}
-                    alt={getUserDisplayName(otherParticipant || undefined)}
+                    src={getUserAvatar(otherParticipant)}
+                    alt={getUserDisplayName(otherParticipant)}
                     className="w-10 h-10 rounded-full object-cover"
                   />
                   
                   <div>
                     <h2 className="text-lg font-medium text-gray-900">
-                      {getUserDisplayName(otherParticipant || undefined)}
+                      {getUserDisplayName(otherParticipant)}
                       {otherParticipant?.is_verified && (
                         <svg className="inline w-5 h-5 text-blue-500 ml-1" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -930,7 +934,7 @@ const UV_MessageCenter: React.FC = () => {
                   })
                 )}
                 
-                <div ref={messagesEndRef}/>
+                <div ref={messagesEndRef}/api/>
               </div>
 
               {/* Message input */}
@@ -949,7 +953,7 @@ const UV_MessageCenter: React.FC = () => {
                           e.preventDefault();
                           handleSendMessage(e);
                         }
-                      }}/>
+                      }}/api/>
                     
                     {selectedFiles.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-2">

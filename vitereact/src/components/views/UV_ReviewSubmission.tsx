@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAppStore } from '@/store/main';
@@ -63,9 +63,7 @@ interface PhotoUploads {
   uploading_photos: string[];
   uploaded_photos: string[];
   upload_errors: string[];
-}
-
-    // Star Rating Component
+}/api// Star Rating Component
 const StarRating: React.FC<{
   rating: number;
   onRatingChange: (rating: number) => void;
@@ -117,7 +115,7 @@ const PhotoUpload: React.FC<{
   onPhotosChange: (photos: string[]) => void;
   uploading: string[];
   errors: string[];
-}> = ({ photos, onPhotosChange, errors }) => {
+}> = ({ photos, onPhotosChange, uploading, errors }) => {
   const [dragOver, setDragOver] = useState(false);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -166,7 +164,7 @@ const PhotoUpload: React.FC<{
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium text-gray-900">Add Photos (Optional)</h3>
-        <span className="text-sm text-gray-500">{photos.length}/10 photos</span>
+        <span className="text-sm text-gray-500">{photos.length}/api/10 photos</span>
       </div>
       
       <p className="text-sm text-gray-600">
@@ -207,7 +205,7 @@ const PhotoUpload: React.FC<{
                     if (e.target.files) {
                       handleFileSelection(Array.from(e.target.files));
                     }
-                  }}/>
+                  }}/api/>
               </label>
             </div>
             <p className="text-xs text-gray-500 mt-2">PNG, JPG, GIF up to 10MB each</p>
@@ -257,7 +255,7 @@ const PhotoUpload: React.FC<{
 
 const UV_ReviewSubmission: React.FC = () => {
   const { booking_id } = useParams<{ booking_id: string }>();
-
+  const navigate = useNavigate();
   
   // Individual Zustand selectors to avoid infinite loops
   const currentUser = useAppStore(state => state.authentication_state.current_user);
@@ -288,7 +286,7 @@ const UV_ReviewSubmission: React.FC = () => {
     can_submit: false,
   });
 
-  const [photoUploads] = useState<PhotoUploads>({
+  const [photoUploads, setPhotoUploads] = useState<PhotoUploads>({
     uploading_photos: [],
     uploaded_photos: [],
     upload_errors: [],
@@ -426,9 +424,7 @@ const UV_ReviewSubmission: React.FC = () => {
         </div>
       </>
     );
-  }
-
-    // Error state
+  }/api// Error state
   if (bookingError || !bookingData) {
     return (
       <>
@@ -453,9 +449,7 @@ const UV_ReviewSubmission: React.FC = () => {
         </div>
       </>
     );
-  }
-
-    // Success state
+  }/api// Success state
   if (submissionStatus.is_submitted) {
     return (
       <>
@@ -488,9 +482,7 @@ const UV_ReviewSubmission: React.FC = () => {
         </div>
       </>
     );
-  }
-
-    // Preview mode
+  }/api// Preview mode
   if (showPreview) {
     return (
       <>
@@ -552,7 +544,7 @@ const UV_ReviewSubmission: React.FC = () => {
                           {[1, 2, 3, 4, 5].map((star) => (
                             <svg
                               key={star}
-                              className={`w-4 h-4 ${star <= (reviewFormData[category.key as keyof ReviewFormData] as number) ? 'text-yellow-400' : 'text-gray-300'}`}
+                              className={`w-4 h-4 ${star <= reviewFormData[category.key as keyof ReviewFormData] ? 'text-yellow-400' : 'text-gray-300'}`}
                               fill="currentColor"
                               viewBox="0 0 20 20"
                             >
@@ -635,9 +627,7 @@ const UV_ReviewSubmission: React.FC = () => {
         </div>
       </>
     );
-  }
-
-    // Main form
+  }/api// Main form
   return (
     <>
       <div className="min-h-screen bg-gray-50 py-8">
@@ -735,7 +725,7 @@ const UV_ReviewSubmission: React.FC = () => {
                     Tell us about your experience <span className="text-red-500">*</span>
                   </label>
                   <span className="text-sm text-gray-500">
-                    {reviewFormData.review_text.length}/1000 characters
+                    {reviewFormData.review_text.length}/api/1000 characters
                   </span>
                 </div>
                 
@@ -754,7 +744,7 @@ const UV_ReviewSubmission: React.FC = () => {
                       ? 'border-red-300'
                       : 'border-gray-300'
                   }`}
-                  maxLength={1000}/>
+                  maxLength={1000}/api/>
                 
                 <div className="text-xs text-gray-500">
                   Minimum 50 characters required. Be specific and helpful for future guests.
@@ -766,7 +756,7 @@ const UV_ReviewSubmission: React.FC = () => {
                 photos={reviewFormData.review_photos}
                 onPhotosChange={updatePhotos}
                 uploading={photoUploads.uploading_photos}
-                errors={photoUploads.upload_errors}/>
+                errors={photoUploads.upload_errors}/api/>
 
               {/* Review Options */}
               <div className="space-y-4">

@@ -1,19 +1,15 @@
 import express from 'express';
 import cors from 'cors';
-import * as dotenv from 'dotenv';
+import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import * as path from 'path';
-import * as fs from 'fs';
+import path from 'path';
 import { fileURLToPath } from 'url';
-
-// ES module compatibility
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import fs from 'fs';
 import morgan from 'morgan';
-import { Pool } from 'pg';
-
+import pkg from 'pg';
+const { Pool } = pkg;
 
 // Import Zod schemas
 import {
@@ -32,25 +28,11 @@ import {
   systemAlertSchema, createSystemAlertInputSchema, searchSystemAlertsInputSchema
 } from './schema.js';
 
-// Extend Socket interface to include user property
-declare module 'socket.io' {
-  interface Socket {
-    user?: any;
-  }
-}
-
-// Extend Express Request interface to include user property
-declare global {
-  namespace Express {
-    interface Request {
-      user?: any;
-    }
-  }
-}
-
 dotenv.config();
 
-// __dirname is available in CommonJS
+// ESM workaround for __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Environment variables
 const { 
@@ -69,14 +51,15 @@ const pool = new Pool(
   DATABASE_URL
     ? { 
         connectionString: DATABASE_URL, 
-        ssl: { rejectUnauthorized: false }      }
+        ssl: { require: true } 
+      }
     : {
         host: PGHOST,
         database: PGDATABASE,
         user: PGUSER,
         password: PGPASSWORD,
         port: Number(PGPORT),
-        ssl: { rejectUnauthorized: false },
+        ssl: { require: true },
       }
 );
 
@@ -84,20 +67,20 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "https://real-estate-app-for-tourists-hot-countries.fly.dev",
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
     methods: ["GET", "POST"]
   }
 });
 
 // Middleware
 app.use(cors({
-  origin: 'https://real-estate-app-for-tourists-hot-countries.fly.dev',
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true,
 }));
 app.use(express.json({ limit: "5mb" }));
 app.use(morgan('combined'));
 
-// Serve static files from the vitereact build directory
+// Serve static files from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Create storage directory if it doesn't exist
@@ -117,10 +100,9 @@ function getCurrentTimestamp() {
 
 // Error response utility
 function createErrorResponse(message, error = null, errorCode = null) {
-  const response: any = {
+  const response = {
     success: false,
     message,
-    error: message, // Add error field for test compatibility
     timestamp: getCurrentTimestamp()
   };
 
@@ -151,7 +133,7 @@ const authenticateToken = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const decoded = jwt.verify(token, JWT_SECRET);
     const client = await pool.connect();
     
     try {
@@ -171,7 +153,7 @@ const authenticateToken = async (req, res, next) => {
     }
   } catch (error) {
     console.error('Authentication error:', error);
-    return res.status(401).json(createErrorResponse('Invalid or expired token', error, 'AUTH_TOKEN_INVALID'));
+    return res.status(403).json(createErrorResponse('Invalid or expired token', error, 'AUTH_TOKEN_INVALID'));
   }
 };
 
@@ -188,7 +170,7 @@ const optionalAuth = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const decoded = jwt.verify(token, JWT_SECRET);
     const client = await pool.connect();
     
     try {
@@ -259,7 +241,7 @@ app.post('/api/auth/register', async (req, res) => {
           temperature_unit, notification_settings, emergency_contact_name, emergency_contact_phone,
           address, date_of_birth, government_id_number, is_active, created_at, updated_at
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
-        RETURNING user_id, email, first_name, last_name, phone_number, profile_photo_url, user_type, bio, languages_spoken, is_verified, is_superhost, currency, language, temperature_unit, is_active, created_at
+        RETURNING user_id, email, first_name, last_name, phone_number, profile_photo_url, user_type, bio, languages_spoken, is_verified, is_superhost, currency, language, temperature_unit, created_at
       `, [
         user_id, email.toLowerCase().trim(), password, first_name, last_name, phone_number, profile_photo_url,
         user_type, bio, languages_spoken ? JSON.stringify(languages_spoken) : '[]', false, false, currency, language,
@@ -277,15 +259,7 @@ app.post('/api/auth/register', async (req, res) => {
       );
 
       // Parse JSON fields for response
-      try {
-        if (typeof user.languages_spoken === 'string') {
-          user.languages_spoken = user.languages_spoken && user.languages_spoken.trim() !== '' && user.languages_spoken !== '[]' ? JSON.parse(user.languages_spoken) : [];
-        } else if (!Array.isArray(user.languages_spoken)) {
-          user.languages_spoken = [];
-        }
-      } catch (e) {
-        user.languages_spoken = [];
-      }
+      user.languages_spoken = user.languages_spoken ? JSON.parse(user.languages_spoken) : [];
 
       res.status(201).json({
         user,
@@ -297,22 +271,7 @@ app.post('/api/auth/register', async (req, res) => {
   } catch (error) {
     console.error('Registration error:', error);
     if (error.name === 'ZodError') {
-      // Extract specific validation errors
-      const issues = error.issues || [];
-      let errorMessage = 'Invalid input data';
-      
-      // Check for specific field errors
-      for (const issue of issues) {
-        if (issue.path.includes('email')) {
-          errorMessage = 'Invalid email format';
-          break;
-        } else if (issue.path.includes('password')) {
-          errorMessage = 'Password must be at least 8 characters long';
-          break;
-        }
-      }
-      
-      return res.status(400).json(createErrorResponse(errorMessage, error, 'VALIDATION_ERROR'));
+      return res.status(400).json(createErrorResponse('Invalid input data', error, 'VALIDATION_ERROR'));
     }
     res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
   }
@@ -339,14 +298,14 @@ app.post('/api/auth/login', async (req, res) => {
       );
 
       if (result.rows.length === 0) {
-        return res.status(401).json(createErrorResponse('Invalid credentials', null, 'INVALID_CREDENTIALS'));
+        return res.status(401).json(createErrorResponse('Invalid email or password', null, 'INVALID_CREDENTIALS'));
       }
 
       const user = result.rows[0];
 
       // Direct password comparison (no hashing for development)
       if (password !== user.password_hash) {
-        return res.status(401).json(createErrorResponse('Invalid credentials', null, 'INVALID_CREDENTIALS'));
+        return res.status(401).json(createErrorResponse('Invalid email or password', null, 'INVALID_CREDENTIALS'));
       }
 
       // Update last login timestamp
@@ -364,16 +323,8 @@ app.post('/api/auth/login', async (req, res) => {
 
       // Remove sensitive data and parse JSON fields
       delete user.password_hash;
-      try {
-        user.languages_spoken = user.languages_spoken && user.languages_spoken.trim() !== '' && user.languages_spoken !== '[]' ? JSON.parse(user.languages_spoken) : [];
-      } catch (e) {
-        user.languages_spoken = [];
-      }
-      try {
-        user.notification_settings = user.notification_settings && user.notification_settings.trim() !== '' && user.notification_settings !== '{}' ? JSON.parse(user.notification_settings) : {};
-      } catch (e) {
-        user.notification_settings = {};
-      }
+      user.languages_spoken = user.languages_spoken ? JSON.parse(user.languages_spoken) : [];
+      user.notification_settings = user.notification_settings ? JSON.parse(user.notification_settings) : {};
 
       res.json({
         user,
@@ -396,7 +347,7 @@ app.post('/api/auth/logout', authenticateToken, async (req, res) => {
     // In a production environment, you might want to invalidate the token
     // For this implementation, we'll just return success
     res.json({
-      message: 'User logged out successfully'
+      message: 'Logout successful'
     });
   } catch (error) {
     console.error('Logout error:', error);
@@ -485,16 +436,8 @@ app.get('/api/users/me', authenticateToken, async (req, res) => {
 
       const user = result.rows[0];
       delete user.password_hash;
-      try {
-        user.languages_spoken = user.languages_spoken && user.languages_spoken.trim() !== '' && user.languages_spoken !== '[]' ? JSON.parse(user.languages_spoken) : [];
-      } catch (e) {
-        user.languages_spoken = [];
-      }
-      try {
-        user.notification_settings = user.notification_settings && user.notification_settings.trim() !== '' && user.notification_settings !== '{}' ? JSON.parse(user.notification_settings) : {};
-      } catch (e) {
-        user.notification_settings = {};
-      }
+      user.languages_spoken = user.languages_spoken ? JSON.parse(user.languages_spoken) : [];
+      user.notification_settings = user.notification_settings ? JSON.parse(user.notification_settings) : {};
 
       res.json(user);
     } finally {
@@ -526,13 +469,7 @@ app.get('/api/users/:user_id', async (req, res) => {
       }
 
       const user = result.rows[0];
-      
-      // Safely parse JSON fields
-      try {
-        user.languages_spoken = user.languages_spoken && user.languages_spoken.trim() !== '' ? JSON.parse(user.languages_spoken) : [];
-      } catch (e) {
-        user.languages_spoken = [];
-      }
+      user.languages_spoken = user.languages_spoken ? JSON.parse(user.languages_spoken) : [];
 
       res.json(user);
     } finally {
@@ -603,19 +540,8 @@ app.put('/api/users/:user_id', authenticateToken, async (req, res) => {
       }
 
       const user = result.rows[0];
-      
-      // Safely parse JSON fields
-      try {
-        user.languages_spoken = user.languages_spoken && user.languages_spoken.trim() !== '' ? JSON.parse(user.languages_spoken) : [];
-      } catch (e) {
-        user.languages_spoken = [];
-      }
-      
-      try {
-        user.notification_settings = user.notification_settings && user.notification_settings.trim() !== '' ? JSON.parse(user.notification_settings) : {};
-      } catch (e) {
-        user.notification_settings = {};
-      }
+      user.languages_spoken = user.languages_spoken ? JSON.parse(user.languages_spoken) : [];
+      user.notification_settings = user.notification_settings ? JSON.parse(user.notification_settings) : {};
 
       res.json(user);
     } finally {
@@ -703,25 +629,9 @@ app.get('/api/users/:user_id/favorites', authenticateToken, async (req, res) => 
       `, [user_id]);
 
       const properties = result.rows.map(row => {
-        // Safely parse JSON fields
-        try {
-          row.amenities = row.amenities && row.amenities.trim() !== '' ? JSON.parse(row.amenities) : [];
-        } catch (e) {
-          row.amenities = [];
-        }
-        
-        try {
-          row.house_rules = row.house_rules && row.house_rules.trim() !== '' ? JSON.parse(row.house_rules) : [];
-        } catch (e) {
-          row.house_rules = [];
-        }
-        
-        try {
-          row.host_language = row.host_language && row.host_language.trim() !== '' ? JSON.parse(row.host_language) : [];
-        } catch (e) {
-          row.host_language = [];
-        }
-        
+        row.amenities = row.amenities ? JSON.parse(row.amenities) : [];
+        row.house_rules = row.house_rules ? JSON.parse(row.house_rules) : [];
+        row.host_language = row.host_language ? JSON.parse(row.host_language) : [];
         return row;
       });
 
@@ -841,34 +751,6 @@ app.get('/api/properties', optionalAuth, async (req, res) => {
       sort_by = 'created_at', sort_order = 'desc', limit = 10, offset = 0
     } = req.query;
 
-    // Coerce query parameters to proper types with safe defaults
-    const parsedParams = {
-      query: query ? String(query) : undefined,
-      destination: destination ? String(destination) : undefined,
-      country: country ? String(country) : undefined,
-      city: city ? String(city) : undefined,
-      check_in_date: check_in_date ? String(check_in_date) : undefined,
-      check_out_date: check_out_date ? String(check_out_date) : undefined,
-      guest_count: guest_count ? Math.max(1, parseInt(String(guest_count)) || 1) : undefined,
-      property_type: property_type ? String(property_type) : undefined,
-      price_min: price_min ? Math.max(0, parseFloat(String(price_min)) || 0) : undefined,
-      price_max: price_max ? Math.max(0, parseFloat(String(price_max)) || 0) : undefined,
-      min_bedrooms: min_bedrooms ? Math.max(0, parseInt(String(min_bedrooms)) || 0) : undefined,
-      max_bedrooms: max_bedrooms ? Math.max(0, parseInt(String(max_bedrooms)) || 0) : undefined,
-      min_bathrooms: min_bathrooms ? Math.max(0, parseFloat(String(min_bathrooms)) || 0) : undefined,
-      max_bathrooms: max_bathrooms ? Math.max(0, parseFloat(String(max_bathrooms)) || 0) : undefined,
-      amenities: amenities ? (Array.isArray(amenities) ? amenities : String(amenities).split(',').filter(Boolean)) : undefined,
-      instant_booking: instant_booking ? String(instant_booking).toLowerCase() === 'true' : undefined,
-      distance_beach: distance_beach ? Math.max(0, parseFloat(String(distance_beach)) || 0) : undefined,
-      distance_airport: distance_airport ? Math.max(0, parseFloat(String(distance_airport)) || 0) : undefined,
-      host_language: host_language ? String(host_language) : undefined,
-      min_rating: min_rating ? Math.min(5, Math.max(0, parseFloat(String(min_rating)) || 0)) : undefined,
-      sort_by: sort_by ? String(sort_by) : 'created_at',
-      sort_order: sort_order && ['asc', 'desc'].includes(String(sort_order)) ? String(sort_order) : 'desc',
-      limit: Math.min(100, Math.max(1, parseInt(String(limit)) || 10)),
-      offset: Math.max(0, parseInt(String(offset)) || 0)
-    };
-
     const client = await pool.connect();
     
     try {
@@ -876,105 +758,105 @@ app.get('/api/properties', optionalAuth, async (req, res) => {
       let queryParams = [];
       let paramIndex = 1;
 
-      // Build dynamic WHERE conditions using parsed parameters
-      if (parsedParams.query) {
+      // Build dynamic WHERE conditions
+      if (query) {
         whereConditions.push(`(p.title ILIKE $${paramIndex} OR p.description ILIKE $${paramIndex} OR p.city ILIKE $${paramIndex} OR p.country ILIKE $${paramIndex})`);
-        queryParams.push(`%${parsedParams.query}%`);
+        queryParams.push(`%${query}%`);
         paramIndex++;
       }
 
-      if (parsedParams.country) {
+      if (country) {
         whereConditions.push(`p.country ILIKE $${paramIndex}`);
-        queryParams.push(`%${parsedParams.country}%`);
+        queryParams.push(`%${country}%`);
         paramIndex++;
       }
 
-      if (parsedParams.city) {
+      if (city) {
         whereConditions.push(`p.city ILIKE $${paramIndex}`);
-        queryParams.push(`%${parsedParams.city}%`);
+        queryParams.push(`%${city}%`);
         paramIndex++;
       }
 
-      if (parsedParams.property_type) {
+      if (property_type) {
         whereConditions.push(`p.property_type = $${paramIndex}`);
-        queryParams.push(parsedParams.property_type);
+        queryParams.push(property_type);
         paramIndex++;
       }
 
-      if (parsedParams.guest_count) {
+      if (guest_count) {
         whereConditions.push(`p.guest_count >= $${paramIndex}`);
-        queryParams.push(parsedParams.guest_count);
+        queryParams.push(parseInt(guest_count));
         paramIndex++;
       }
 
-      if (parsedParams.price_min) {
+      if (price_min) {
         whereConditions.push(`p.base_price_per_night >= $${paramIndex}`);
-        queryParams.push(parsedParams.price_min);
+        queryParams.push(parseFloat(price_min));
         paramIndex++;
       }
 
-      if (parsedParams.price_max) {
+      if (price_max) {
         whereConditions.push(`p.base_price_per_night <= $${paramIndex}`);
-        queryParams.push(parsedParams.price_max);
+        queryParams.push(parseFloat(price_max));
         paramIndex++;
       }
 
-      if (parsedParams.min_bedrooms) {
+      if (min_bedrooms) {
         whereConditions.push(`p.bedrooms >= $${paramIndex}`);
-        queryParams.push(parsedParams.min_bedrooms);
+        queryParams.push(parseInt(min_bedrooms));
         paramIndex++;
       }
 
-      if (parsedParams.max_bedrooms) {
+      if (max_bedrooms) {
         whereConditions.push(`p.bedrooms <= $${paramIndex}`);
-        queryParams.push(parsedParams.max_bedrooms);
+        queryParams.push(parseInt(max_bedrooms));
         paramIndex++;
       }
 
-      if (parsedParams.min_bathrooms) {
+      if (min_bathrooms) {
         whereConditions.push(`p.bathrooms >= $${paramIndex}`);
-        queryParams.push(parsedParams.min_bathrooms);
+        queryParams.push(parseFloat(min_bathrooms));
         paramIndex++;
       }
 
-      if (parsedParams.max_bathrooms) {
+      if (max_bathrooms) {
         whereConditions.push(`p.bathrooms <= $${paramIndex}`);
-        queryParams.push(parsedParams.max_bathrooms);
+        queryParams.push(parseFloat(max_bathrooms));
         paramIndex++;
       }
 
-      if (parsedParams.instant_booking !== undefined) {
+      if (instant_booking !== undefined) {
         whereConditions.push(`p.instant_booking = $${paramIndex}`);
-        queryParams.push(parsedParams.instant_booking);
+        queryParams.push(instant_booking === 'true');
         paramIndex++;
       }
 
-      if (parsedParams.distance_beach) {
+      if (distance_beach) {
         whereConditions.push(`p.distance_beach <= $${paramIndex}`);
-        queryParams.push(parsedParams.distance_beach);
+        queryParams.push(parseFloat(distance_beach));
         paramIndex++;
       }
 
-      if (parsedParams.distance_airport) {
+      if (distance_airport) {
         whereConditions.push(`p.distance_airport <= $${paramIndex}`);
-        queryParams.push(parsedParams.distance_airport);
+        queryParams.push(parseFloat(distance_airport));
         paramIndex++;
       }
 
-      if (parsedParams.min_rating) {
+      if (min_rating) {
         whereConditions.push(`p.average_rating >= $${paramIndex}`);
-        queryParams.push(parsedParams.min_rating);
+        queryParams.push(parseFloat(min_rating));
         paramIndex++;
       }
 
-      if (parsedParams.amenities && parsedParams.amenities.length > 0) {
+      if (amenities && Array.isArray(amenities) && amenities.length > 0) {
         whereConditions.push(`p.amenities @> $${paramIndex}`);
-        queryParams.push(JSON.stringify(parsedParams.amenities));
+        queryParams.push(JSON.stringify(amenities));
         paramIndex++;
       }
 
       // Availability check if dates provided
-      if (parsedParams.check_in_date && parsedParams.check_out_date) {
+      if (check_in_date && check_out_date) {
         whereConditions.push(`
           NOT EXISTS (
             SELECT 1 FROM property_availability pa 
@@ -984,13 +866,13 @@ app.get('/api/properties', optionalAuth, async (req, res) => {
             AND (pa.is_available = false OR pa.is_blocked = true)
           )
         `);
-        queryParams.push(parsedParams.check_in_date, parsedParams.check_out_date);
+        queryParams.push(check_in_date, check_out_date);
         paramIndex += 2;
       }
 
       // Build ORDER BY clause
       let orderByClause = 'ORDER BY ';
-      switch (parsedParams.sort_by) {
+      switch (sort_by) {
         case 'price':
           orderByClause += 'p.base_price_per_night';
           break;
@@ -1003,7 +885,7 @@ app.get('/api/properties', optionalAuth, async (req, res) => {
         default:
           orderByClause += 'p.created_at';
       }
-      orderByClause += parsedParams.sort_order === 'asc' ? ' ASC' : ' DESC';
+      orderByClause += sort_order === 'asc' ? ' ASC' : ' DESC';
 
       const searchQuery = `
         SELECT 
@@ -1019,21 +901,760 @@ app.get('/api/properties', optionalAuth, async (req, res) => {
         ${orderByClause}
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
-      
-      queryParams.push(parsedParams.limit, parsedParams.offset);
-      
+
+      queryParams.push(parseInt(limit), parseInt(offset));
+
       const result = await client.query(searchQuery, queryParams);
-      
+
       // Get total count
       const countQuery = `
         SELECT COUNT(*) FROM properties p
-        JOIN users u ON p.owner_id = u.user_id
         WHERE ${whereConditions.join(' AND ')}
       `;
       const countResult = await client.query(countQuery, queryParams.slice(0, -2));
-      
+
+      // Process results
+      const properties = result.rows.map(row => {
+        row.amenities = row.amenities ? JSON.parse(row.amenities) : [];
+        row.house_rules = row.house_rules ? JSON.parse(row.house_rules) : [];
+        row.host_language = row.host_language ? JSON.parse(row.host_language) : [];
+        return row;
+      });
+
       res.json({
-        bookings: result.rows,
+        properties,
+        total: parseInt(countResult.rows[0].count),
+        filters: {
+          applied: req.query,
+          available_sort_options: ['price', 'rating', 'created_at', 'distance_beach']
+        }
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Property search error:', error);
+    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
+  }
+});
+
+/*
+  POST /api/properties - Creates new property listing
+*/
+app.post('/api/properties', authenticateToken, async (req, res) => {
+  try {
+    const validatedData = createPropertyInputSchema.parse(req.body);
+    
+    // Ensure the owner_id matches the authenticated user (unless admin)
+    if (req.user.user_id !== validatedData.owner_id && req.user.user_type !== 'admin') {
+      return res.status(403).json(createErrorResponse('Permission denied - can only create properties for yourself', null, 'PERMISSION_DENIED'));
+    }
+
+    const client = await pool.connect();
+    
+    try {
+      const property_id = generateId();
+      const timestamp = getCurrentTimestamp();
+
+      const result = await client.query(`
+        INSERT INTO properties (
+          property_id, owner_id, title, description, property_type, country, city, region, neighborhood,
+          address, latitude, longitude, bedrooms, bathrooms, guest_count, property_size, distance_beach,
+          distance_airport, base_price_per_night, currency, cleaning_fee, security_deposit, extra_guest_fee,
+          pet_fee, amenities, house_rules, check_in_time, check_out_time, minimum_stay, maximum_stay,
+          instant_booking, host_language, cancellation_policy, is_active, is_verified, average_rating,
+          review_count, created_at, updated_at
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
+          $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39
+        )
+        RETURNING *
+      `, [
+        property_id, validatedData.owner_id, validatedData.title, validatedData.description,
+        validatedData.property_type, validatedData.country, validatedData.city, validatedData.region,
+        validatedData.neighborhood, validatedData.address, validatedData.latitude, validatedData.longitude,
+        validatedData.bedrooms, validatedData.bathrooms, validatedData.guest_count, validatedData.property_size,
+        validatedData.distance_beach, validatedData.distance_airport, validatedData.base_price_per_night,
+        validatedData.currency, validatedData.cleaning_fee, validatedData.security_deposit,
+        validatedData.extra_guest_fee, validatedData.pet_fee, JSON.stringify(validatedData.amenities),
+        JSON.stringify(validatedData.house_rules), validatedData.check_in_time, validatedData.check_out_time,
+        validatedData.minimum_stay, validatedData.maximum_stay, validatedData.instant_booking,
+        JSON.stringify(validatedData.host_language), validatedData.cancellation_policy, true, false,
+        null, 0, timestamp, timestamp
+      ]);
+
+      const property = result.rows[0];
+      property.amenities = JSON.parse(property.amenities);
+      property.house_rules = JSON.parse(property.house_rules);
+      property.host_language = JSON.parse(property.host_language);
+
+      // Emit real-time event for property creation
+      io.emit('property_created', {
+        property_id: property.property_id,
+        owner_id: property.owner_id,
+        title: property.title,
+        country: property.country,
+        city: property.city,
+        property_type: property.property_type,
+        created_at: property.created_at
+      });
+
+      res.status(201).json(property);
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Create property error:', error);
+    if (error.name === 'ZodError') {
+      return res.status(400).json(createErrorResponse('Invalid input data', error, 'VALIDATION_ERROR'));
+    }
+    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
+  }
+});
+
+/*
+  GET /api/properties/:property_id - Gets detailed property information
+*/
+app.get('/api/properties/:property_id', optionalAuth, async (req, res) => {
+  try {
+    const { property_id } = req.params;
+    const { check_in_date, check_out_date, guest_count } = req.query;
+
+    const client = await pool.connect();
+    
+    try {
+      // Get property details with owner info
+      const propertyResult = await client.query(`
+        SELECT 
+          p.*,
+          u.user_id as owner_user_id, u.first_name as owner_first_name, u.last_name as owner_last_name,
+          u.profile_photo_url as owner_photo, u.bio as owner_bio, u.languages_spoken as owner_languages,
+          u.is_verified as owner_verified, u.is_superhost, u.created_at as owner_member_since
+        FROM properties p
+        JOIN users u ON p.owner_id = u.user_id
+        WHERE p.property_id = $1 AND p.is_active = true
+      `, [property_id]);
+
+      if (propertyResult.rows.length === 0) {
+        return res.status(404).json(createErrorResponse('Property not found', null, 'PROPERTY_NOT_FOUND'));
+      }
+
+      const property = propertyResult.rows[0];
+
+      // Get property photos
+      const photosResult = await client.query(`
+        SELECT * FROM property_photos 
+        WHERE property_id = $1 
+        ORDER BY photo_order ASC
+      `, [property_id]);
+
+      // Get availability and pricing if dates provided
+      let availability = null;
+      let pricing = null;
+
+      if (check_in_date && check_out_date) {
+        const availabilityResult = await client.query(`
+          SELECT date, is_available, price_per_night, minimum_stay, is_blocked
+          FROM property_availability
+          WHERE property_id = $1 AND date >= $2 AND date < $3
+          ORDER BY date
+        `, [property_id, check_in_date, check_out_date]);
+
+        availability = availabilityResult.rows;
+
+        // Calculate pricing
+        const nights = Math.ceil((new Date(check_out_date) - new Date(check_in_date)) / (1000 * 60 * 60 * 24));
+        const basePrice = property.base_price_per_night * nights;
+        const cleaningFee = property.cleaning_fee || 0;
+        const serviceFee = basePrice * 0.1; // 10% service fee
+        const taxesAndFees = basePrice * 0.06; // 6% taxes
+        const extraGuestFee = guest_count > property.guest_count ? 
+          (guest_count - property.guest_count) * (property.extra_guest_fee || 0) * nights : 0;
+
+        pricing = {
+          nights,
+          base_price: basePrice,
+          cleaning_fee: cleaningFee,
+          service_fee: serviceFee,
+          taxes_and_fees: taxesAndFees,
+          extra_guest_fee: extraGuestFee,
+          total_price: basePrice + cleaningFee + serviceFee + taxesAndFees + extraGuestFee,
+          currency: property.currency
+        };
+      }
+
+      // Parse JSON fields
+      property.amenities = property.amenities ? JSON.parse(property.amenities) : [];
+      property.house_rules = property.house_rules ? JSON.parse(property.house_rules) : [];
+      property.host_language = property.host_language ? JSON.parse(property.host_language) : [];
+      property.owner_languages = property.owner_languages ? JSON.parse(property.owner_languages) : [];
+
+      // Build response
+      const response = {
+        ...property,
+        photos: photosResult.rows,
+        owner: {
+          user_id: property.owner_user_id,
+          first_name: property.owner_first_name,
+          last_name: property.owner_last_name,
+          profile_photo_url: property.owner_photo,
+          bio: property.owner_bio,
+          languages_spoken: property.owner_languages,
+          is_verified: property.owner_verified,
+          is_superhost: property.is_superhost,
+          member_since: property.owner_member_since
+        }
+      };
+
+      if (availability) response.availability = availability;
+      if (pricing) response.pricing = pricing;
+
+      // Clean up duplicate owner fields
+      delete response.owner_user_id;
+      delete response.owner_first_name;
+      delete response.owner_last_name;
+      delete response.owner_photo;
+      delete response.owner_bio;
+      delete response.owner_languages;
+      delete response.owner_verified;
+      delete response.owner_member_since;
+
+      res.json(response);
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Get property by ID error:', error);
+    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
+  }
+});
+
+/*
+  PUT /api/properties/:property_id - Updates property details
+*/
+app.put('/api/properties/:property_id', authenticateToken, async (req, res) => {
+  try {
+    const { property_id } = req.params;
+    
+    const client = await pool.connect();
+    
+    try {
+      // Check property ownership
+      const ownerCheck = await client.query('SELECT owner_id FROM properties WHERE property_id = $1', [property_id]);
+      if (ownerCheck.rows.length === 0) {
+        return res.status(404).json(createErrorResponse('Property not found', null, 'PROPERTY_NOT_FOUND'));
+      }
+
+      if (ownerCheck.rows[0].owner_id !== req.user.user_id && req.user.user_type !== 'admin') {
+        return res.status(403).json(createErrorResponse('Permission denied', null, 'PERMISSION_DENIED'));
+      }
+
+      const validatedData = updatePropertyInputSchema.parse({ property_id, ...req.body });
+      
+      const updateFields = [];
+      const updateValues = [];
+      let paramIndex = 1;
+
+      const updateableFields = [
+        'title', 'description', 'property_type', 'region', 'neighborhood', 'address',
+        'latitude', 'longitude', 'bedrooms', 'bathrooms', 'guest_count', 'property_size',
+        'distance_beach', 'distance_airport', 'base_price_per_night', 'cleaning_fee',
+        'security_deposit', 'extra_guest_fee', 'pet_fee', 'amenities', 'house_rules',
+        'check_in_time', 'check_out_time', 'minimum_stay', 'maximum_stay', 'instant_booking',
+        'host_language', 'cancellation_policy', 'is_active'
+      ];
+
+      updateableFields.forEach(field => {
+        if (validatedData[field] !== undefined) {
+          updateFields.push(`${field} = $${paramIndex}`);
+          if (['amenities', 'house_rules', 'host_language'].includes(field)) {
+            updateValues.push(JSON.stringify(validatedData[field]));
+          } else {
+            updateValues.push(validatedData[field]);
+          }
+          paramIndex++;
+        }
+      });
+
+      if (updateFields.length === 0) {
+        return res.status(400).json(createErrorResponse('No valid fields to update', null, 'NO_UPDATE_FIELDS'));
+      }
+
+      updateFields.push(`updated_at = $${paramIndex}`);
+      updateValues.push(getCurrentTimestamp());
+      updateValues.push(property_id);
+
+      const result = await client.query(`
+        UPDATE properties SET ${updateFields.join(', ')}
+        WHERE property_id = $${paramIndex + 1}
+        RETURNING *
+      `, updateValues);
+
+      const property = result.rows[0];
+      property.amenities = JSON.parse(property.amenities);
+      property.house_rules = JSON.parse(property.house_rules);
+      property.host_language = JSON.parse(property.host_language);
+
+      // Emit real-time event for property update
+      io.emit('property_updated', {
+        property_id: property.property_id,
+        updated_fields: Object.keys(validatedData).filter(key => validatedData[key] !== undefined),
+        updated_at: property.updated_at
+      });
+
+      res.json(property);
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Update property error:', error);
+    if (error.name === 'ZodError') {
+      return res.status(400).json(createErrorResponse('Invalid input data', error, 'VALIDATION_ERROR'));
+    }
+    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
+  }
+});
+
+/*
+  DELETE /api/properties/:property_id - Deactivates property listing
+*/
+app.delete('/api/properties/:property_id', authenticateToken, async (req, res) => {
+  try {
+    const { property_id } = req.params;
+    
+    const client = await pool.connect();
+    
+    try {
+      // Check property ownership
+      const ownerCheck = await client.query('SELECT owner_id FROM properties WHERE property_id = $1', [property_id]);
+      if (ownerCheck.rows.length === 0) {
+        return res.status(404).json(createErrorResponse('Property not found', null, 'PROPERTY_NOT_FOUND'));
+      }
+
+      if (ownerCheck.rows[0].owner_id !== req.user.user_id && req.user.user_type !== 'admin') {
+        return res.status(403).json(createErrorResponse('Permission denied', null, 'PERMISSION_DENIED'));
+      }
+
+      // Soft delete by setting is_active to false
+      await client.query(
+        'UPDATE properties SET is_active = false, updated_at = $1 WHERE property_id = $2',
+        [getCurrentTimestamp(), property_id]
+      );
+
+      res.status(204).send();
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Delete property error:', error);
+    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
+  }
+});
+
+/*
+  GET /api/properties/:property_id/availability - Gets property availability calendar
+*/
+app.get('/api/properties/:property_id/availability', async (req, res) => {
+  try {
+    const { property_id } = req.params;
+    const { start_date, end_date } = req.query;
+
+    if (!start_date || !end_date) {
+      return res.status(400).json(createErrorResponse('Start date and end date are required', null, 'MISSING_DATE_RANGE'));
+    }
+
+    const client = await pool.connect();
+    
+    try {
+      const result = await client.query(`
+        SELECT date, is_available, price_per_night, minimum_stay, is_blocked, block_reason
+        FROM property_availability
+        WHERE property_id = $1 AND date >= $2 AND date <= $3
+        ORDER BY date
+      `, [property_id, start_date, end_date]);
+
+      res.json({
+        availability: result.rows
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Get property availability error:', error);
+    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
+  }
+});
+
+/*
+  PUT /api/properties/:property_id/availability - Updates property availability
+*/
+app.put('/api/properties/:property_id/availability', authenticateToken, async (req, res) => {
+  try {
+    const { property_id } = req.params;
+    const { availability_updates } = req.body;
+
+    if (!availability_updates || !Array.isArray(availability_updates)) {
+      return res.status(400).json(createErrorResponse('Availability updates array is required', null, 'MISSING_AVAILABILITY_UPDATES'));
+    }
+
+    const client = await pool.connect();
+    
+    try {
+      // Check property ownership
+      const ownerCheck = await client.query('SELECT owner_id FROM properties WHERE property_id = $1', [property_id]);
+      if (ownerCheck.rows.length === 0) {
+        return res.status(404).json(createErrorResponse('Property not found', null, 'PROPERTY_NOT_FOUND'));
+      }
+
+      if (ownerCheck.rows[0].owner_id !== req.user.user_id && req.user.user_type !== 'admin') {
+        return res.status(403).json(createErrorResponse('Permission denied', null, 'PERMISSION_DENIED'));
+      }
+
+      // Process availability updates
+      for (const update of availability_updates) {
+        const { date, is_available, price_per_night, minimum_stay } = update;
+        const availability_id = generateId();
+        const timestamp = getCurrentTimestamp();
+
+        await client.query(`
+          INSERT INTO property_availability (availability_id, property_id, date, is_available, price_per_night, minimum_stay, created_at, updated_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          ON CONFLICT (property_id, date) 
+          DO UPDATE SET 
+            is_available = EXCLUDED.is_available,
+            price_per_night = EXCLUDED.price_per_night,
+            minimum_stay = EXCLUDED.minimum_stay,
+            updated_at = EXCLUDED.updated_at
+        `, [availability_id, property_id, date, is_available, price_per_night, minimum_stay, timestamp, timestamp]);
+
+        // Emit real-time availability update
+        io.emit(`property_${property_id}_availability_updated`, {
+          property_id,
+          date,
+          is_available,
+          price_per_night,
+          minimum_stay,
+          updated_at: timestamp
+        });
+      }
+
+      res.json({
+        message: 'Availability updated successfully'
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Update property availability error:', error);
+    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
+  }
+});
+
+// ============================================================================
+// PROPERTY PHOTOS ENDPOINTS
+// ============================================================================
+
+/*
+  GET /api/properties/:property_id/photos - Gets property photos
+*/
+app.get('/api/properties/:property_id/photos', async (req, res) => {
+  try {
+    const { property_id } = req.params;
+
+    const client = await pool.connect();
+    
+    try {
+      const result = await client.query(`
+        SELECT * FROM property_photos 
+        WHERE property_id = $1 
+        ORDER BY photo_order ASC
+      `, [property_id]);
+
+      res.json(result.rows);
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Get property photos error:', error);
+    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
+  }
+});
+
+/*
+  POST /api/properties/:property_id/photos - Adds property photo
+*/
+app.post('/api/properties/:property_id/photos', authenticateToken, async (req, res) => {
+  try {
+    const { property_id } = req.params;
+    const validatedData = createPropertyPhotoInputSchema.parse({ property_id, ...req.body });
+
+    const client = await pool.connect();
+    
+    try {
+      // Check property ownership
+      const ownerCheck = await client.query('SELECT owner_id FROM properties WHERE property_id = $1', [property_id]);
+      if (ownerCheck.rows.length === 0) {
+        return res.status(404).json(createErrorResponse('Property not found', null, 'PROPERTY_NOT_FOUND'));
+      }
+
+      if (ownerCheck.rows[0].owner_id !== req.user.user_id && req.user.user_type !== 'admin') {
+        return res.status(403).json(createErrorResponse('Permission denied', null, 'PERMISSION_DENIED'));
+      }
+
+      const photo_id = generateId();
+      const timestamp = getCurrentTimestamp();
+
+      const result = await client.query(`
+        INSERT INTO property_photos (photo_id, property_id, photo_url, photo_order, is_cover_photo, alt_text, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING *
+      `, [
+        photo_id, validatedData.property_id, validatedData.photo_url, validatedData.photo_order,
+        validatedData.is_cover_photo, validatedData.alt_text, timestamp
+      ]);
+
+      res.status(201).json(result.rows[0]);
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Add property photo error:', error);
+    if (error.name === 'ZodError') {
+      return res.status(400).json(createErrorResponse('Invalid input data', error, 'VALIDATION_ERROR'));
+    }
+    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
+  }
+});
+
+/*
+  PUT /api/photos/:photo_id - Updates property photo
+*/
+app.put('/api/photos/:photo_id', authenticateToken, async (req, res) => {
+  try {
+    const { photo_id } = req.params;
+    const validatedData = updatePropertyPhotoInputSchema.parse({ photo_id, ...req.body });
+
+    const client = await pool.connect();
+    
+    try {
+      // Check if photo exists and get property ownership
+      const photoResult = await client.query(`
+        SELECT pp.*, p.owner_id 
+        FROM property_photos pp
+        JOIN properties p ON pp.property_id = p.property_id
+        WHERE pp.photo_id = $1
+      `, [photo_id]);
+
+      if (photoResult.rows.length === 0) {
+        return res.status(404).json(createErrorResponse('Photo not found', null, 'PHOTO_NOT_FOUND'));
+      }
+
+      if (photoResult.rows[0].owner_id !== req.user.user_id && req.user.user_type !== 'admin') {
+        return res.status(403).json(createErrorResponse('Permission denied', null, 'PERMISSION_DENIED'));
+      }
+
+      const updateFields = [];
+      const updateValues = [];
+      let paramIndex = 1;
+
+      const updateableFields = ['photo_order', 'is_cover_photo', 'alt_text'];
+
+      updateableFields.forEach(field => {
+        if (validatedData[field] !== undefined) {
+          updateFields.push(`${field} = $${paramIndex}`);
+          updateValues.push(validatedData[field]);
+          paramIndex++;
+        }
+      });
+
+      if (updateFields.length === 0) {
+        return res.status(400).json(createErrorResponse('No valid fields to update', null, 'NO_UPDATE_FIELDS'));
+      }
+
+      updateValues.push(photo_id);
+
+      const result = await client.query(`
+        UPDATE property_photos SET ${updateFields.join(', ')}
+        WHERE photo_id = $${paramIndex}
+        RETURNING *
+      `, updateValues);
+
+      res.json(result.rows[0]);
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Update property photo error:', error);
+    if (error.name === 'ZodError') {
+      return res.status(400).json(createErrorResponse('Invalid input data', error, 'VALIDATION_ERROR'));
+    }
+    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
+  }
+});
+
+/*
+  DELETE /api/photos/:photo_id - Deletes property photo
+*/
+app.delete('/api/photos/:photo_id', authenticateToken, async (req, res) => {
+  try {
+    const { photo_id } = req.params;
+
+    const client = await pool.connect();
+    
+    try {
+      // Check if photo exists and get property ownership
+      const photoResult = await client.query(`
+        SELECT pp.*, p.owner_id 
+        FROM property_photos pp
+        JOIN properties p ON pp.property_id = p.property_id
+        WHERE pp.photo_id = $1
+      `, [photo_id]);
+
+      if (photoResult.rows.length === 0) {
+        return res.status(404).json(createErrorResponse('Photo not found', null, 'PHOTO_NOT_FOUND'));
+      }
+
+      if (photoResult.rows[0].owner_id !== req.user.user_id && req.user.user_type !== 'admin') {
+        return res.status(403).json(createErrorResponse('Permission denied', null, 'PERMISSION_DENIED'));
+      }
+
+      await client.query('DELETE FROM property_photos WHERE photo_id = $1', [photo_id]);
+
+      res.status(204).send();
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Delete property photo error:', error);
+    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
+  }
+});
+
+// ============================================================================
+// BOOKING MANAGEMENT ENDPOINTS
+// ============================================================================
+
+/*
+  GET /api/bookings - Gets user bookings with filtering
+*/
+app.get('/api/bookings', authenticateToken, async (req, res) => {
+  try {
+    const {
+      guest_id, property_id, booking_status, payment_status, check_in_from, check_in_to,
+      limit = 10, offset = 0, sort_by = 'created_at', sort_order = 'desc'
+    } = req.query;
+
+    const client = await pool.connect();
+    
+    try {
+      let whereConditions = [];
+      let queryParams = [];
+      let paramIndex = 1;
+
+      // Users can only see their own bookings (as guest or host) unless admin
+      if (req.user.user_type !== 'admin') {
+        whereConditions.push(`(b.guest_id = $${paramIndex} OR p.owner_id = $${paramIndex})`);
+        queryParams.push(req.user.user_id);
+        paramIndex++;
+      }
+
+      if (guest_id) {
+        whereConditions.push(`b.guest_id = $${paramIndex}`);
+        queryParams.push(guest_id);
+        paramIndex++;
+      }
+
+      if (property_id) {
+        whereConditions.push(`b.property_id = $${paramIndex}`);
+        queryParams.push(property_id);
+        paramIndex++;
+      }
+
+      if (booking_status) {
+        whereConditions.push(`b.booking_status = $${paramIndex}`);
+        queryParams.push(booking_status);
+        paramIndex++;
+      }
+
+      if (payment_status) {
+        whereConditions.push(`b.payment_status = $${paramIndex}`);
+        queryParams.push(payment_status);
+        paramIndex++;
+      }
+
+      if (check_in_from) {
+        whereConditions.push(`b.check_in_date >= $${paramIndex}`);
+        queryParams.push(check_in_from);
+        paramIndex++;
+      }
+
+      if (check_in_to) {
+        whereConditions.push(`b.check_in_date <= $${paramIndex}`);
+        queryParams.push(check_in_to);
+        paramIndex++;
+      }
+
+      const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+      
+      let orderByClause = 'ORDER BY ';
+      switch (sort_by) {
+        case 'check_in_date':
+          orderByClause += 'b.check_in_date';
+          break;
+        case 'total_price':
+          orderByClause += 'b.total_price';
+          break;
+        default:
+          orderByClause += 'b.created_at';
+      }
+      orderByClause += sort_order === 'asc' ? ' ASC' : ' DESC';
+
+      const bookingsQuery = `
+        SELECT 
+          b.*,
+          p.title as property_title, p.address as property_address, p.city as property_city,
+          p.country as property_country, p.base_price_per_night,
+          pp.photo_url as property_cover_photo,
+          u.first_name as guest_first_name, u.last_name as guest_last_name,
+          h.first_name as host_first_name, h.last_name as host_last_name
+        FROM bookings b
+        JOIN properties p ON b.property_id = p.property_id
+        JOIN users u ON b.guest_id = u.user_id
+        JOIN users h ON p.owner_id = h.user_id
+        LEFT JOIN property_photos pp ON p.property_id = pp.property_id AND pp.is_cover_photo = true
+        ${whereClause}
+        ${orderByClause}
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      `;
+
+      queryParams.push(parseInt(limit), parseInt(offset));
+
+      const result = await client.query(bookingsQuery, queryParams);
+
+      // Get total count
+      const countQuery = `
+        SELECT COUNT(*) FROM bookings b
+        JOIN properties p ON b.property_id = p.property_id
+        ${whereClause}
+      `;
+      const countResult = await client.query(countQuery, queryParams.slice(0, -2));
+
+      // Process results
+      const bookings = result.rows.map(row => ({
+        ...row,
+        property: {
+          property_id: row.property_id,
+          title: row.property_title,
+          address: row.property_address,
+          city: row.property_city,
+          country: row.property_country,
+          base_price_per_night: row.base_price_per_night,
+          cover_photo_url: row.property_cover_photo
+        }
+      }));
+
+      res.json({
+        bookings,
         total: parseInt(countResult.rows[0].count)
       });
     } finally {
@@ -1041,6 +1662,124 @@ app.get('/api/properties', optionalAuth, async (req, res) => {
     }
   } catch (error) {
     console.error('Get bookings error:', error);
+    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
+  }
+});
+
+/*
+  POST /api/bookings - Creates new booking with pricing calculation
+*/
+app.post('/api/bookings', authenticateToken, async (req, res) => {
+  try {
+    const validatedData = createBookingInputSchema.parse(req.body);
+
+    const client = await pool.connect();
+    
+    try {
+      // Get property details for pricing calculation
+      const propertyResult = await client.query('SELECT * FROM properties WHERE property_id = $1 AND is_active = true', [validatedData.property_id]);
+      if (propertyResult.rows.length === 0) {
+        return res.status(404).json(createErrorResponse('Property not found', null, 'PROPERTY_NOT_FOUND'));
+      }
+
+      const property = propertyResult.rows[0];
+
+      // Check availability for the requested dates
+      const availabilityResult = await client.query(`
+        SELECT date FROM property_availability
+        WHERE property_id = $1 AND date >= $2 AND date < $3 AND (is_available = false OR is_blocked = true)
+      `, [validatedData.property_id, validatedData.check_in_date, validatedData.check_out_date]);
+
+      if (availabilityResult.rows.length > 0) {
+        return res.status(400).json(createErrorResponse('Property is not available for selected dates', null, 'PROPERTY_NOT_AVAILABLE'));
+      }
+
+      // Calculate pricing
+      const checkInDate = new Date(validatedData.check_in_date);
+      const checkOutDate = new Date(validatedData.check_out_date);
+      const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+      
+      if (nights < property.minimum_stay) {
+        return res.status(400).json(createErrorResponse(`Minimum stay is ${property.minimum_stay} nights`, null, 'MINIMUM_STAY_NOT_MET'));
+      }
+
+      if (property.maximum_stay && nights > property.maximum_stay) {
+        return res.status(400).json(createErrorResponse(`Maximum stay is ${property.maximum_stay} nights`, null, 'MAXIMUM_STAY_EXCEEDED'));
+      }
+
+      const basePrice = property.base_price_per_night * nights;
+      const cleaningFee = property.cleaning_fee || 0;
+      const serviceFee = basePrice * 0.1; // 10% service fee
+      const taxesAndFees = basePrice * 0.06; // 6% taxes
+      const extraGuestFee = validatedData.guest_count > property.guest_count ? 
+        (validatedData.guest_count - property.guest_count) * (property.extra_guest_fee || 0) * nights : 0;
+      
+      const totalPrice = basePrice + cleaningFee + serviceFee + taxesAndFees + extraGuestFee;
+
+      // Create booking
+      const booking_id = generateId();
+      const timestamp = getCurrentTimestamp();
+
+      const result = await client.query(`
+        INSERT INTO bookings (
+          booking_id, property_id, guest_id, check_in_date, check_out_date, guest_count, adults, children, infants,
+          nights, base_price, cleaning_fee, service_fee, taxes_and_fees, total_price, currency, special_requests,
+          booking_status, payment_status, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+        RETURNING *
+      `, [
+        booking_id, validatedData.property_id, validatedData.guest_id, validatedData.check_in_date,
+        validatedData.check_out_date, validatedData.guest_count, validatedData.adults, validatedData.children,
+        validatedData.infants, nights, basePrice, cleaningFee, serviceFee, taxesAndFees, totalPrice,
+        property.currency, validatedData.special_requests, 'pending', 'pending', timestamp, timestamp
+      ]);
+
+      const booking = result.rows[0];
+
+      // Mark dates as unavailable
+      for (let d = new Date(checkInDate); d < checkOutDate; d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().split('T')[0];
+        const availability_id = generateId();
+        
+        await client.query(`
+          INSERT INTO property_availability (availability_id, property_id, date, is_available, created_at, updated_at)
+          VALUES ($1, $2, $3, false, $4, $5)
+          ON CONFLICT (property_id, date) DO UPDATE SET is_available = false, updated_at = $5
+        `, [availability_id, validatedData.property_id, dateStr, timestamp, timestamp]);
+      }
+
+      // Emit real-time events
+      io.emit('booking_created', {
+        booking_id: booking.booking_id,
+        property_id: booking.property_id,
+        guest_id: booking.guest_id,
+        check_in_date: booking.check_in_date,
+        check_out_date: booking.check_out_date,
+        total_price: booking.total_price,
+        currency: booking.currency,
+        booking_status: booking.booking_status,
+        created_at: booking.created_at
+      });
+
+      // Notify property owner
+      io.to(`user_${property.owner_id}`).emit('new_booking_received', {
+        booking_id: booking.booking_id,
+        property_title: property.title,
+        guest_name: `${req.user.first_name} ${req.user.last_name}`,
+        check_in_date: booking.check_in_date,
+        check_out_date: booking.check_out_date,
+        total_price: booking.total_price
+      });
+
+      res.status(201).json(booking);
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Create booking error:', error);
+    if (error.name === 'ZodError') {
+      return res.status(400).json(createErrorResponse('Invalid input data', error, 'VALIDATION_ERROR'));
+    }
     res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
   }
 });
@@ -1290,11 +2029,10 @@ app.delete('/api/bookings/:booking_id', authenticateToken, async (req, res) => {
 
       // Cancel booking
       const timestamp = getCurrentTimestamp();
-      const updateResult = await client.query(`
+      await client.query(`
         UPDATE bookings 
         SET booking_status = 'cancelled', cancellation_reason = $1, cancelled_at = $2, updated_at = $3
         WHERE booking_id = $4
-        RETURNING *
       `, [cancellation_reason || 'Cancelled by user', timestamp, timestamp, booking_id]);
 
       // Free up dates
@@ -1318,7 +2056,9 @@ app.delete('/api/bookings/:booking_id', authenticateToken, async (req, res) => {
         refund_amount: booking.total_price * 0.8 // Mock 80% refund
       });
 
-      res.json(updateResult.rows[0]);
+      res.json({
+        message: 'Booking cancelled successfully'
+      });
     } finally {
       client.release();
     }
@@ -1369,21 +2109,49 @@ app.post('/api/payments', authenticateToken, async (req, res) => {
         RETURNING *
       `, [
         payment_id, validatedData.booking_id, validatedData.amount, validatedData.currency,
-        validatedData.payment_method, 'pending',
-        validatedData.transaction_id || mockTransactionId,
-        null, timestamp, timestamp
+        validatedData.payment_method, mockPaymentSuccess ? 'completed' : 'failed',
+        mockPaymentSuccess ? mockTransactionId : null,
+        mockPaymentSuccess ? timestamp : null, timestamp, timestamp
       ]);
 
-      // Update booking payment status to pending initially
-      await client.query(`
-        UPDATE bookings SET payment_status = 'pending', updated_at = $1
-        WHERE booking_id = $2
-      `, [timestamp, validatedData.booking_id]);
+      // Update booking payment status
+      if (mockPaymentSuccess) {
+        await client.query(`
+          UPDATE bookings SET payment_status = 'completed', booking_status = 'confirmed', updated_at = $1
+          WHERE booking_id = $2
+        `, [timestamp, validatedData.booking_id]);
 
-      const payment = result.rows[0];
-      payment.amount = parseFloat(payment.amount);
-      
-      res.status(201).json(payment);
+        // Emit payment completed event
+        io.emit('payment_completed', {
+          payment_id: result.rows[0].payment_id,
+          booking_id: validatedData.booking_id,
+          amount: validatedData.amount,
+          currency: validatedData.currency,
+          payment_method: validatedData.payment_method,
+          transaction_id: mockTransactionId,
+          payment_date: timestamp
+        });
+
+        // Emit booking confirmed event
+        io.emit('booking_confirmed', {
+          booking_id: validatedData.booking_id,
+          confirmation_date: timestamp,
+          check_in_instructions: 'Check-in instructions will be sent 24 hours before arrival'
+        });
+      } else {
+        // Emit payment failed event
+        io.emit('payment_failed', {
+          payment_id: result.rows[0].payment_id,
+          booking_id: validatedData.booking_id,
+          amount: validatedData.amount,
+          currency: validatedData.currency,
+          payment_method: validatedData.payment_method,
+          failure_reason: 'Mock payment failure for testing',
+          failed_at: timestamp
+        });
+      }
+
+      res.status(201).json(result.rows[0]);
     } finally {
       client.release();
     }
@@ -1445,23 +2213,9 @@ app.put('/api/payments/:payment_id', authenticateToken, async (req, res) => {
   try {
     const { payment_id } = req.params;
 
-    // Check if user has permission to update this payment
-    const permissionResult = await pool.query(`
-      SELECT p.payment_id, b.guest_id 
-      FROM payments p 
-      JOIN bookings b ON p.booking_id = b.booking_id 
-      WHERE p.payment_id = $1
-    `, [payment_id]);
-
-    if (permissionResult.rows.length === 0) {
-      return res.status(404).json(createErrorResponse('Payment not found', null, 'PAYMENT_NOT_FOUND'));
-    }
-
-    const payment = permissionResult.rows[0];
-    
-    // Only admins or the guest who made the booking can update payment status
-    if (req.user.user_type !== 'admin' && req.user.user_id !== payment.guest_id) {
-      return res.status(403).json(createErrorResponse('Permission denied', null, 'PERMISSION_DENIED'));
+    // Only admins should be able to update payment status directly
+    if (req.user.user_type !== 'admin') {
+      return res.status(403).json(createErrorResponse('Permission denied - admin access required', null, 'PERMISSION_DENIED'));
     }
 
     const validatedData = updatePaymentInputSchema.parse({ payment_id, ...req.body });
@@ -1563,7 +2317,7 @@ app.get('/api/conversations', authenticateToken, async (req, res) => {
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
 
-      queryParams.push(String(limit), String(offset));
+      queryParams.push(parseInt(limit), parseInt(offset));
 
       const result = await client.query(conversationsQuery, queryParams);
 
@@ -1659,8 +2413,8 @@ app.post('/api/conversations', authenticateToken, async (req, res) => {
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9)
         RETURNING *
       `, [
-        conversation_id, validatedData.property_id, validatedData.booking_id || null, validatedData.guest_id,
-        validatedData.host_id, validatedData.conversation_type || 'inquiry', validatedData.subject || null, timestamp, timestamp
+        conversation_id, validatedData.property_id, validatedData.booking_id, validatedData.guest_id,
+        validatedData.host_id, validatedData.conversation_type, validatedData.subject, timestamp, timestamp
       ]);
 
       // Emit conversation started event
@@ -1820,7 +2574,7 @@ app.get('/api/conversations/:conversation_id/messages', authenticateToken, async
       }
 
       messagesQuery += ` ORDER BY m.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-      queryParams.push(String(limit), String(offset));
+      queryParams.push(parseInt(limit), parseInt(offset));
 
       const result = await client.query(messagesQuery, queryParams);
 
@@ -1893,9 +2647,9 @@ app.post('/api/messages', authenticateToken, async (req, res) => {
         ) VALUES ($1, $2, $3, $4, $5, false, $6, $7, $8)
         RETURNING *
       `, [
-        message_id, validatedData.conversation_id, req.user.user_id, validatedData.message_text,
+        message_id, validatedData.conversation_id, validatedData.sender_id, validatedData.message_text,
         validatedData.attachments ? JSON.stringify(validatedData.attachments) : '[]',
-        validatedData.message_type || 'text', validatedData.is_automated || false, timestamp
+        validatedData.message_type, validatedData.is_automated, timestamp
       ]);
 
       // Update conversation last_message_at
@@ -2085,7 +2839,7 @@ app.get('/api/locations', async (req, res) => {
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
 
-      queryParams.push(String(limit), String(offset));
+      queryParams.push(parseInt(limit), parseInt(offset));
 
       const result = await client.query(locationsQuery, queryParams);
 
@@ -2098,13 +2852,8 @@ app.get('/api/locations', async (req, res) => {
 
       // Process results
       const locations = result.rows.map(row => {
-        try {
-          row.languages = row.languages ? (typeof row.languages === 'string' ? (row.languages.startsWith('[') || row.languages.startsWith('{') ? JSON.parse(row.languages) : [row.languages]) : row.languages) : [];
-          row.best_visit_months = row.best_visit_months ? (typeof row.best_visit_months === 'string' ? (row.best_visit_months.startsWith('[') || row.best_visit_months.startsWith('{') ? JSON.parse(row.best_visit_months) : [row.best_visit_months]) : row.best_visit_months) : [];
-        } catch (e) {
-          row.languages = [];
-          row.best_visit_months = [];
-        }
+        row.languages = row.languages ? JSON.parse(row.languages) : [];
+        row.best_visit_months = row.best_visit_months ? JSON.parse(row.best_visit_months) : [];
         return row;
       });
 
@@ -2192,7 +2941,7 @@ app.get('/api/locations/:location_id/weather', async (req, res) => {
       };
 
       const mockForecast = [];
-      for (let i = 0; i < parseInt(String(forecast_days)); i++) {
+      for (let i = 0; i < parseInt(forecast_days); i++) {
         const date = new Date();
         date.setDate(date.getDate() + i);
         mockForecast.push({
@@ -2205,21 +2954,14 @@ app.get('/api/locations/:location_id/weather', async (req, res) => {
         });
       }
 
-      const response: any = {
-        current: {
-          temperature_avg: mockCurrentWeather.temperature_avg,
-          humidity: mockCurrentWeather.humidity,
-          wind_speed: mockCurrentWeather.wind_speed,
-          uv_index: mockCurrentWeather.uv_index,
-          weather_condition: mockCurrentWeather.weather_condition,
-          sunshine_hours: mockCurrentWeather.sunshine_hours
-        },
+      const response = {
+        current: mockCurrentWeather,
         forecast: mockForecast,
-        best_visit_months: []
+        best_visit_months: location.best_visit_months ? JSON.parse(location.best_visit_months) : []
       };
 
       if (include_historical === 'true') {
-        response.historical = [];
+        response.historical = weatherResult.rows;
       }
 
       res.json(response);
@@ -2244,12 +2986,12 @@ app.get('/api/locations/:location_id/attractions', async (req, res) => {
     
     try {
       let whereConditions = [`location_id = $1`];
-      let queryParams: any[] = [location_id];
+      let queryParams = [location_id];
       let paramIndex = 2;
 
       if (category) {
         whereConditions.push(`category = $${paramIndex}`);
-        queryParams.push(String(category));
+        queryParams.push(category);
         paramIndex++;
       }
 
@@ -2266,7 +3008,7 @@ app.get('/api/locations/:location_id/attractions', async (req, res) => {
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
 
-      queryParams.push(String(limit), String(offset));
+      queryParams.push(parseInt(limit), parseInt(offset));
 
       const result = await client.query(attractionsQuery, queryParams);
 
@@ -2279,13 +3021,8 @@ app.get('/api/locations/:location_id/attractions', async (req, res) => {
 
       // Process results
       const attractions = result.rows.map(row => {
-        try {
-          row.opening_hours = row.opening_hours ? (typeof row.opening_hours === 'string' ? (row.opening_hours.startsWith('{') || row.opening_hours.startsWith('[') ? JSON.parse(row.opening_hours) : {}) : row.opening_hours) : {};
-          row.image_urls = row.image_urls ? (typeof row.image_urls === 'string' ? (row.image_urls.startsWith('[') || row.image_urls.startsWith('{') ? JSON.parse(row.image_urls) : [row.image_urls]) : row.image_urls) : [];
-        } catch (e) {
-          row.opening_hours = {};
-          row.image_urls = [];
-        }
+        row.opening_hours = row.opening_hours ? JSON.parse(row.opening_hours) : {};
+        row.image_urls = row.image_urls ? JSON.parse(row.image_urls) : [];
         return row;
       });
 
@@ -2323,7 +3060,7 @@ app.get('/api/properties/:property_id/reviews', async (req, res) => {
 
       if (min_rating) {
         whereConditions.push(`r.overall_rating >= $${paramIndex}`);
-        queryParams.push(String(min_rating));
+        queryParams.push(parseInt(min_rating));
         paramIndex++;
       }
 
@@ -2349,7 +3086,7 @@ app.get('/api/properties/:property_id/reviews', async (req, res) => {
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
 
-      queryParams.push(String(limit), String(offset));
+      queryParams.push(parseInt(limit), parseInt(offset));
 
       const result = await client.query(reviewsQuery, queryParams);
 
@@ -2397,129 +3134,6 @@ app.get('/api/properties/:property_id/reviews', async (req, res) => {
 });
 
 /*
-  GET /api/reviews - Gets reviews with filtering
-*/
-app.get('/api/reviews', async (req, res) => {
-  try {
-    const { 
-      property_id, reviewer_id, min_rating, max_rating, is_visible = true,
-      limit = 10, offset = 0, sort_by = 'created_at', sort_order = 'desc' 
-    } = req.query;
-
-    // Coerce query parameters
-    const parsedParams = {
-      property_id: property_id ? String(property_id) : undefined,
-      reviewer_id: reviewer_id ? String(reviewer_id) : undefined,
-      min_rating: min_rating ? parseInt(String(min_rating)) || undefined : undefined,
-      max_rating: max_rating ? parseInt(String(max_rating)) || undefined : undefined,
-      is_visible: is_visible ? String(is_visible).toLowerCase() === 'true' : true,
-      limit: Math.min(100, Math.max(1, parseInt(String(limit)) || 10)),
-      offset: Math.max(0, parseInt(String(offset)) || 0),
-      sort_by: sort_by ? String(sort_by) : 'created_at',
-      sort_order: sort_order ? String(sort_order) : 'desc'
-    };
-
-    const client = await pool.connect();
-    
-    try {
-      let whereConditions = ['r.is_visible = $1'];
-      let queryParams: any[] = [parsedParams.is_visible];
-      let paramIndex = 2;
-
-      if (parsedParams.property_id) {
-        whereConditions.push(`r.property_id = $${paramIndex}`);
-        queryParams.push(parsedParams.property_id);
-        paramIndex++;
-      }
-
-      if (parsedParams.reviewer_id) {
-        whereConditions.push(`r.reviewer_id = $${paramIndex}`);
-        queryParams.push(parsedParams.reviewer_id);
-        paramIndex++;
-      }
-
-      if (parsedParams.min_rating) {
-        whereConditions.push(`r.overall_rating >= $${paramIndex}`);
-        queryParams.push(parsedParams.min_rating);
-        paramIndex++;
-      }
-
-      if (parsedParams.max_rating) {
-        whereConditions.push(`r.overall_rating <= $${paramIndex}`);
-        queryParams.push(parsedParams.max_rating);
-        paramIndex++;
-      }
-
-      let orderByClause = 'ORDER BY ';
-      switch (parsedParams.sort_by) {
-        case 'overall_rating':
-          orderByClause += 'r.overall_rating';
-          break;
-        default:
-          orderByClause += 'r.created_at';
-      }
-      orderByClause += parsedParams.sort_order === 'asc' ? ' ASC' : ' DESC';
-
-      const reviewsQuery = `
-        SELECT 
-          r.*,
-          u.first_name as reviewer_first_name, u.last_name as reviewer_last_name,
-          u.profile_photo_url as reviewer_photo, u.created_at as reviewer_member_since
-        FROM reviews r
-        JOIN users u ON r.reviewer_id = u.user_id
-        WHERE ${whereConditions.join(' AND ')}
-        ${orderByClause}
-        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-      `;
-
-      queryParams.push(parsedParams.limit, parsedParams.offset);
-
-      const result = await client.query(reviewsQuery, queryParams);
-
-      // Get total count and average rating
-      const countQuery = `
-        SELECT COUNT(*), AVG(overall_rating) as avg_rating
-        FROM reviews r
-        WHERE ${whereConditions.join(' AND ')}
-      `;
-      const countResult = await client.query(countQuery, queryParams.slice(0, -2));
-
-      // Process results
-      const reviews = result.rows.map(row => ({
-        ...row,
-        review_photos: row.review_photos ? JSON.parse(row.review_photos) : [],
-        reviewer: {
-          user_id: row.reviewer_id,
-          first_name: row.reviewer_first_name,
-          last_name: row.reviewer_last_name,
-          profile_photo_url: row.reviewer_photo,
-          member_since: row.reviewer_member_since
-        }
-      }));
-
-      // Clean up duplicate fields
-      reviews.forEach(review => {
-        delete review.reviewer_first_name;
-        delete review.reviewer_last_name;
-        delete review.reviewer_photo;
-        delete review.reviewer_member_since;
-      });
-
-      res.json({
-        reviews,
-        total: parseInt(countResult.rows[0].count),
-        average_rating: parseFloat(countResult.rows[0].avg_rating) || 0
-      });
-    } finally {
-      client.release();
-    }
-  } catch (error) {
-    console.error('Get reviews error:', error);
-    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
-  }
-});
-
-/*
   POST /api/reviews - Submits property review
 */
 app.post('/api/reviews', authenticateToken, async (req, res) => {
@@ -2536,7 +3150,7 @@ app.post('/api/reviews', authenticateToken, async (req, res) => {
       );
 
       if (bookingResult.rows.length === 0) {
-        return res.status(400).json(createErrorResponse('Only completed bookings can be reviewed', null, 'BOOKING_NOT_COMPLETED'));
+        return res.status(404).json(createErrorResponse('Completed booking not found', null, 'BOOKING_NOT_FOUND'));
       }
 
       // Check if review already exists
@@ -2560,7 +3174,7 @@ app.post('/api/reviews', authenticateToken, async (req, res) => {
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true, $15, $16)
         RETURNING *
       `, [
-        review_id, validatedData.booking_id, validatedData.property_id, req.user.user_id,
+        review_id, validatedData.booking_id, validatedData.property_id, validatedData.reviewer_id,
         validatedData.overall_rating, validatedData.cleanliness_rating, validatedData.accuracy_rating,
         validatedData.communication_rating, validatedData.location_rating, validatedData.checkin_rating,
         validatedData.value_rating, validatedData.review_text,
@@ -2788,7 +3402,7 @@ app.get('/api/currency-rates', async (req, res) => {
       }
     };
 
-    const baseRates = mockRates[String(base_currency)] || mockRates['USD'];
+    const baseRates = mockRates[base_currency] || mockRates['USD'];
     let rates = baseRates;
 
     if (target_currencies) {
@@ -2862,7 +3476,7 @@ app.get('/api/system-alerts', async (req, res) => {
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
 
-      queryParams.push(String(limit), String(offset));
+      queryParams.push(parseInt(limit), parseInt(offset));
 
       const result = await client.query(alertsQuery, queryParams);
 
@@ -2875,15 +3489,7 @@ app.get('/api/system-alerts', async (req, res) => {
 
       // Process results
       const alerts = result.rows.map(row => {
-        try {
-          if (typeof row.affected_locations === 'string') {
-            row.affected_locations = JSON.parse(row.affected_locations);
-          } else if (!Array.isArray(row.affected_locations)) {
-            row.affected_locations = [];
-          }
-        } catch (e) {
-          row.affected_locations = [];
-        }
+        row.affected_locations = row.affected_locations ? JSON.parse(row.affected_locations) : [];
         return row;
       });
 
@@ -2945,7 +3551,7 @@ app.get('/api/market-data', authenticateToken, async (req, res) => {
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
 
-      queryParams.push(String(limit), String(offset));
+      queryParams.push(parseInt(limit), parseInt(offset));
 
       const result = await client.query(marketQuery, queryParams);
 
@@ -2957,30 +3563,17 @@ app.get('/api/market-data', authenticateToken, async (req, res) => {
       const countResult = await client.query(countQuery, queryParams.slice(0, -2));
 
       // Process results
-      const marketData = result.rows.map(row => {
-        let legal_requirements = [];
-        try {
-          if (typeof row.legal_requirements === 'string') {
-            legal_requirements = JSON.parse(row.legal_requirements);
-          } else if (Array.isArray(row.legal_requirements)) {
-            legal_requirements = row.legal_requirements;
-          }
-        } catch (e) {
-          legal_requirements = [];
+      const marketData = result.rows.map(row => ({
+        ...row,
+        legal_requirements: row.legal_requirements ? JSON.parse(row.legal_requirements) : [],
+        location: {
+          location_id: row.location_id,
+          city: row.city,
+          country: row.country,
+          climate_type: row.climate_type,
+          destination_slug: row.destination_slug
         }
-        
-        return {
-          ...row,
-          legal_requirements,
-          location: {
-            location_id: row.location_id,
-            city: row.city,
-            country: row.country,
-            climate_type: row.climate_type,
-            destination_slug: row.destination_slug
-          }
-        };
-      });
+      }));
 
       // Clean up duplicate fields
       marketData.forEach(data => {
@@ -3016,7 +3609,8 @@ io.on('connection', (socket) => {
   // Handle user authentication for socket
   socket.on('authenticate', async (token) => {
     try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any;      const client = await pool.connect();
+      const decoded = jwt.verify(token, JWT_SECRET);
+      const client = await pool.connect();
       
       try {
         const result = await client.query(
@@ -3190,611 +3784,6 @@ io.on('connection', (socket) => {
 });
 
 // ============================================================================
-// SAVED SEARCHES ENDPOINTS
-// ============================================================================
-
-/*
-  GET /api/saved-searches - Gets user's saved searches
-*/
-app.get('/api/saved-searches', authenticateToken, async (req, res) => {
-  try {
-    const { user_id, is_active = true, limit = 10, offset = 0 } = req.query;
-
-    // Coerce query parameters
-    const parsedParams = {
-      user_id: user_id ? String(user_id) : req.user.user_id,
-      is_active: is_active ? String(is_active).toLowerCase() === 'true' : true,
-      limit: Math.min(100, Math.max(1, parseInt(String(limit)) || 10)),
-      offset: Math.max(0, parseInt(String(offset)) || 0)
-    };
-
-    // Users can only see their own saved searches unless admin
-    if (req.user.user_type !== 'admin' && parsedParams.user_id !== req.user.user_id) {
-      return res.status(403).json(createErrorResponse('Permission denied', null, 'PERMISSION_DENIED'));
-    }
-
-    const client = await pool.connect();
-    
-    try {
-      const result = await client.query(`
-        SELECT * FROM saved_searches 
-        WHERE user_id = $1 AND is_active = $2
-        ORDER BY created_at DESC
-        LIMIT $3 OFFSET $4
-      `, [parsedParams.user_id, parsedParams.is_active, parsedParams.limit, parsedParams.offset]);
-
-      const countResult = await client.query(`
-        SELECT COUNT(*) FROM saved_searches 
-        WHERE user_id = $1 AND is_active = $2
-      `, [parsedParams.user_id, parsedParams.is_active]);
-
-      res.json({
-        saved_searches: result.rows,
-        total: parseInt(countResult.rows[0].count)
-      });
-    } finally {
-      client.release();
-    }
-  } catch (error) {
-    console.error('Get saved searches error:', error);
-    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
-  }
-});
-
-/*
-  POST /api/saved-searches - Creates a new saved search
-*/
-app.post('/api/saved-searches', authenticateToken, async (req, res) => {
-  try {
-    const validatedData = createSavedSearchInputSchema.parse(req.body);
-    
-    // Ensure the user_id matches the authenticated user (unless admin)
-    if (req.user.user_id !== validatedData.user_id && req.user.user_type !== 'admin') {
-      return res.status(403).json(createErrorResponse('Permission denied', null, 'PERMISSION_DENIED'));
-    }
-
-    const client = await pool.connect();
-    
-    try {
-      const search_id = generateId();
-      const timestamp = getCurrentTimestamp();
-
-      const result = await client.query(`
-        INSERT INTO saved_searches (
-          search_id, user_id, search_name, destination, check_in_date, check_out_date,
-          guest_count, property_type, price_min, price_max, amenities, instant_booking,
-          distance_beach, distance_airport, host_language, sort_by, is_active, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
-        RETURNING *
-      `, [
-        search_id, validatedData.user_id, validatedData.search_name, validatedData.destination,
-        validatedData.check_in_date, validatedData.check_out_date, validatedData.guest_count,
-        validatedData.property_type, validatedData.price_min, validatedData.price_max,
-        validatedData.amenities ? JSON.stringify(validatedData.amenities) : null,
-        validatedData.instant_booking, validatedData.distance_beach, validatedData.distance_airport,
-        validatedData.host_language, validatedData.sort_by, validatedData.is_active,
-        timestamp, timestamp
-      ]);
-
-      res.status(201).json(result.rows[0]);
-    } finally {
-      client.release();
-    }
-  } catch (error) {
-    console.error('Create saved search error:', error);
-    if (error.name === 'ZodError') {
-      return res.status(400).json(createErrorResponse('Invalid input data', error, 'VALIDATION_ERROR'));
-    }
-    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
-  }
-});
-
-/*
-  DELETE /api/saved-searches/:search_id - Deletes a saved search
-*/
-app.delete('/api/saved-searches/:search_id', authenticateToken, async (req, res) => {
-  try {
-    const { search_id } = req.params;
-
-    const client = await pool.connect();
-    
-    try {
-      // Check ownership
-      const ownerCheck = await client.query('SELECT user_id FROM saved_searches WHERE search_id = $1', [search_id]);
-      if (ownerCheck.rows.length === 0) {
-        return res.status(404).json(createErrorResponse('Saved search not found', null, 'SEARCH_NOT_FOUND'));
-      }
-
-      if (ownerCheck.rows[0].user_id !== req.user.user_id && req.user.user_type !== 'admin') {
-        return res.status(403).json(createErrorResponse('Permission denied', null, 'PERMISSION_DENIED'));
-      }
-
-      await client.query('DELETE FROM saved_searches WHERE search_id = $1', [search_id]);
-
-      res.status(204).send();
-    } finally {
-      client.release();
-    }
-  } catch (error) {
-    console.error('Delete saved search error:', error);
-    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
-  }
-});
-
-// ============================================================================
-// NOTIFICATION ENDPOINTS
-// ============================================================================
-
-/*
-  GET /api/notifications - Gets user notifications with filtering options
-*/
-app.get('/api/notifications', authenticateToken, async (req, res) => {
-  try {
-    const { user_id, notification_type, is_read, limit = 10, offset = 0 } = req.query;
-    
-    // Users can only see their own notifications (unless admin)
-    const targetUserId = req.user.user_type === 'admin' && user_id ? user_id : req.user.user_id;
-    
-    const client = await pool.connect();
-    
-    try {
-      let whereConditions = ['n.user_id = $1'];
-      let queryParams = [targetUserId];
-      let paramIndex = 2;
-      
-      if (notification_type) {
-        whereConditions.push(`n.notification_type = $${paramIndex}`);
-        queryParams.push(notification_type);
-        paramIndex++;
-      }
-      
-      if (is_read !== undefined) {
-        whereConditions.push(`n.is_read = $${paramIndex}`);
-        queryParams.push(is_read === 'true');
-        paramIndex++;
-      }
-      
-      const whereClause = whereConditions.join(' AND ');
-      
-      const query = `
-        SELECT n.*
-        FROM notifications n
-        WHERE ${whereClause}
-        ORDER BY n.created_at DESC
-        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-      `;
-      
-      queryParams.push(String(limit), String(offset));
-      
-      const result = await client.query(query, queryParams);
-      
-      // Get total count
-      const countQuery = `SELECT COUNT(*) FROM notifications n WHERE ${whereClause}`;
-      const countResult = await client.query(countQuery, queryParams.slice(0, -2));
-      
-      res.json({
-        notifications: result.rows,
-        total: parseInt(countResult.rows[0].count)
-      });
-    } finally {
-      client.release();
-    }
-  } catch (error) {
-    console.error('Get notifications error:', error);
-    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
-  }
-});
-
-// ============================================================================
-// CURRENCY EXCHANGE ENDPOINTS
-// ============================================================================
-
-/*
-  GET /api/currency-rates - Gets current currency exchange rates
-*/
-app.get('/api/currency-rates', async (req, res) => {
-  try {
-    const { base_currency = 'USD', target_currencies } = req.query;
-    
-    // Mock currency rates for development
-    const mockRates = {
-      USD: { EUR: 0.925, MXN: 17.25, THB: 34.5, GBP: 0.79, CAD: 1.35 },
-      EUR: { USD: 1.08, MXN: 18.65, THB: 37.3, GBP: 0.85, CAD: 1.46 },
-      MXN: { USD: 0.058, EUR: 0.054, THB: 2.0, GBP: 0.046, CAD: 0.078 }
-    };
-    
-    const rates = mockRates[String(base_currency)] || mockRates.USD;
-    
-    let filteredRates = rates;
-    if (target_currencies) {
-      const targets = Array.isArray(target_currencies) ? target_currencies : String(target_currencies).split(',');
-      filteredRates = {};
-      targets.forEach(currency => {
-        if (rates[currency]) {
-          filteredRates[currency] = rates[currency];
-        }
-      });
-    }
-    
-    res.json({
-      base_currency,
-      rates: filteredRates,
-      rate_date: new Date().toISOString().split('T')[0]
-    });
-  } catch (error) {
-    console.error('Get currency rates error:', error);
-    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
-  }
-});
-
-// ============================================================================
-// SYSTEM ALERTS ENDPOINTS
-// ============================================================================
-
-
-
-// ============================================================================
-// LOCATION ENDPOINTS
-// ============================================================================
-
-/*
-  GET /api/locations - Gets location data with filtering
-*/
-app.get('/api/locations', async (req, res) => {
-  try {
-    const { country, is_featured, climate_type = 'hot', limit = 10, offset = 0 } = req.query;
-    
-    const client = await pool.connect();
-    
-    try {
-      let whereConditions = [];
-      let queryParams = [];
-      let paramIndex = 1;
-      
-      if (country) {
-        whereConditions.push(`country ILIKE $${paramIndex}`);
-        queryParams.push(`%${country}%`);
-        paramIndex++;
-      }
-      
-      if (is_featured !== undefined) {
-        whereConditions.push(`is_featured = $${paramIndex}`);
-        queryParams.push(is_featured === 'true');
-        paramIndex++;
-      }
-      
-      if (climate_type) {
-        whereConditions.push(`climate_type = $${paramIndex}`);
-        queryParams.push(climate_type);
-        paramIndex++;
-      }
-      
-      const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-      
-      const query = `
-        SELECT * FROM locations
-        ${whereClause}
-        ORDER BY is_featured DESC, city ASC
-        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-      `;
-      
-      queryParams.push(String(limit), String(offset));
-      
-      const result = await client.query(query, queryParams);
-      
-      // Get total count
-      const countQuery = `SELECT COUNT(*) FROM locations ${whereClause}`;
-      const countResult = await client.query(countQuery, queryParams.slice(0, -2));
-      
-      res.json({
-        locations: result.rows,
-        total: parseInt(countResult.rows[0].count)
-      });
-    } finally {
-      client.release();
-    }
-  } catch (error) {
-    console.error('Get locations error:', error);
-    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
-  }
-});
-
-/*
-  GET /api/locations/:location_id/weather - Gets weather data for a location
-*/
-app.get('/api/locations/:location_id/weather', async (req, res) => {
-  try {
-    const { location_id } = req.params;
-    const { forecast_days = 7 } = req.query;
-    
-    // Mock weather data for development
-    const mockWeatherData = {
-      location_id,
-      current: {
-        temperature_avg: 26.5,
-        humidity: 78.2,
-        wind_speed: 12.5,
-        uv_index: 8.5,
-        weather_condition: 'Sunny',
-        sunshine_hours: 9.5
-      },
-      forecast: Array.from({ length: parseInt(String(forecast_days)) }, (_, i) => ({
-        date: new Date(Date.now() + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        temperature_high: 28 + Math.random() * 4,
-        temperature_low: 22 + Math.random() * 4,
-        humidity: 70 + Math.random() * 20,
-        wind_speed: 10 + Math.random() * 10,
-        weather_condition: ['Sunny', 'Partly Cloudy', 'Cloudy'][Math.floor(Math.random() * 3)],
-        precipitation_chance: Math.random() * 30
-      }))
-    };
-    
-    res.json(mockWeatherData);
-  } catch (error) {
-    console.error('Get weather error:', error);
-    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
-  }
-});
-
-/*
-  GET /api/locations/:location_id/attractions - Gets local attractions
-*/
-app.get('/api/locations/:location_id/attractions', async (req, res) => {
-  try {
-    const { location_id } = req.params;
-    const { category, limit = 10, offset = 0 } = req.query;
-    
-    const client = await pool.connect();
-    
-    try {
-      let whereConditions = ['location_id = $1'];
-      let queryParams = [location_id];
-      let paramIndex = 2;
-      
-      if (category) {
-        whereConditions.push(`category = $${paramIndex}`);
-        queryParams.push(String(category));
-        paramIndex++;
-      }
-      
-      const whereClause = whereConditions.join(' AND ');
-      
-      const query = `
-        SELECT * FROM attractions
-        WHERE ${whereClause}
-        ORDER BY rating DESC, name ASC
-        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-      `;
-      
-      queryParams.push(String(limit), String(offset));
-      
-      const result = await client.query(query, queryParams);
-      
-      // Get total count
-      const countQuery = `SELECT COUNT(*) FROM attractions WHERE ${whereClause}`;
-      const countResult = await client.query(countQuery, queryParams.slice(0, -2));
-      
-      res.json({
-        attractions: result.rows,
-        total: parseInt(countResult.rows[0].count)
-      });
-    } finally {
-      client.release();
-    }
-  } catch (error) {
-    console.error('Get attractions error:', error);
-    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
-  }
-});
-
-// ============================================================================
-// INVESTMENT ANALYTICS ENDPOINTS
-// ============================================================================
-
-
-
-/*
-  GET /api/properties/:property_id/analytics - Gets property investment analytics
-*/
-app.get('/api/properties/:property_id/analytics', authenticateToken, async (req, res) => {
-  try {
-    const { property_id } = req.params;
-    
-    const client = await pool.connect();
-    
-    try {
-      // Check if user owns the property
-      const propertyCheck = await client.query('SELECT owner_id FROM properties WHERE property_id = $1', [property_id]);
-      if (propertyCheck.rows.length === 0) {
-        return res.status(404).json(createErrorResponse('Property not found', null, 'PROPERTY_NOT_FOUND'));
-      }
-      
-      if (propertyCheck.rows[0].owner_id !== req.user.user_id && req.user.user_type !== 'admin') {
-        return res.status(403).json(createErrorResponse('Permission denied', null, 'PERMISSION_DENIED'));
-      }
-      
-      // Mock analytics data for development
-      const mockAnalytics = {
-        analytics_id: generateId(),
-        property_id,
-        rental_yield: 8.5,
-        occupancy_rate: 0.75,
-        revenue_analysis: {
-          monthly_revenue: 3500,
-          yearly_projection: 42000,
-          occupancy_rate: 0.75,
-          average_daily_rate: 185
-        },
-        market_comparison: {
-          market_average_rate: 165,
-          performance_vs_market: 1.12,
-          ranking_percentile: 78
-        },
-        investment_metrics: {
-          roi_percentage: 8.5,
-          payback_period_years: 12,
-          cash_flow_monthly: 1200
-        }
-      };
-      
-      res.json(mockAnalytics);
-    } finally {
-      client.release();
-    }
-  } catch (error) {
-    console.error('Get property analytics error:', error);
-    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
-  }
-});
-
-// ============================================================================
-// SAVED SEARCHES ENDPOINTS
-// ============================================================================
-
-/*
-  GET /api/saved-searches - Gets user's saved searches
-*/
-app.get('/api/saved-searches', authenticateToken, async (req, res) => {
-  try {
-    const { user_id, is_active, limit = 10, offset = 0 } = req.query;
-    
-    // Coerce query parameters with safe defaults
-    const parsedLimit = Math.min(100, Math.max(1, parseInt(String(limit)) || 10));
-    const parsedOffset = Math.max(0, parseInt(String(offset)) || 0);
-    const targetUserId = user_id || req.user.user_id;
-    
-    // Users can only access their own saved searches unless admin
-    if (req.user.user_type !== 'admin' && targetUserId !== req.user.user_id) {
-      return res.status(403).json(createErrorResponse('Permission denied', null, 'PERMISSION_DENIED'));
-    }
-
-    const client = await pool.connect();
-    
-    try {
-      let whereConditions = ['user_id = $1'];
-      let queryParams = [targetUserId];
-      let paramIndex = 2;
-      
-      if (is_active !== undefined) {
-        whereConditions.push(`is_active = $${paramIndex}`);
-        queryParams.push(String(is_active).toLowerCase() === 'true');
-        paramIndex++;
-      }
-      
-      const whereClause = whereConditions.join(' AND ');
-      
-      const result = await client.query(`
-        SELECT * FROM saved_searches 
-        WHERE ${whereClause}
-        ORDER BY created_at DESC
-        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-      `, [...queryParams, parsedLimit, parsedOffset]);
-      
-      // Get total count
-      const countResult = await client.query(`
-        SELECT COUNT(*) FROM saved_searches WHERE ${whereClause}
-      `, queryParams);
-      
-      res.json({
-        saved_searches: result.rows,
-        total: parseInt(countResult.rows[0].count)
-      });
-    } finally {
-      client.release();
-    }
-  } catch (error) {
-    console.error('Get saved searches error:', error);
-    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
-  }
-});
-
-/*
-  POST /api/saved-searches - Creates new saved search
-*/
-app.post('/api/saved-searches', authenticateToken, async (req, res) => {
-  try {
-    const validatedData = createSavedSearchInputSchema.parse({
-      user_id: req.user.user_id,
-      ...req.body
-    });
-    
-    const client = await pool.connect();
-    
-    try {
-      const search_id = generateId();
-      const timestamp = getCurrentTimestamp();
-      
-      const result = await client.query(`
-        INSERT INTO saved_searches (
-          search_id, user_id, search_name, destination, check_in_date, check_out_date,
-          guest_count, property_type, price_min, price_max, amenities, instant_booking,
-          distance_beach, distance_airport, host_language, sort_by, is_active, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
-        RETURNING *
-      `, [
-        search_id, validatedData.user_id, validatedData.search_name, validatedData.destination,
-        validatedData.check_in_date, validatedData.check_out_date, validatedData.guest_count,
-        validatedData.property_type, validatedData.price_min, validatedData.price_max,
-        JSON.stringify(validatedData.amenities || []), validatedData.instant_booking,
-        validatedData.distance_beach, validatedData.distance_airport, validatedData.host_language,
-        validatedData.sort_by, validatedData.is_active, timestamp, timestamp
-      ]);
-      
-      const savedSearch = result.rows[0];
-      
-      // Parse JSON fields
-      try {
-        savedSearch.amenities = savedSearch.amenities ? JSON.parse(savedSearch.amenities) : [];
-      } catch (e) {
-        savedSearch.amenities = [];
-      }
-      
-      res.status(201).json(savedSearch);
-    } finally {
-      client.release();
-    }
-  } catch (error) {
-    console.error('Create saved search error:', error);
-    if (error.name === 'ZodError') {
-      return res.status(400).json(createErrorResponse('Invalid input data', error, 'VALIDATION_ERROR'));
-    }
-    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
-  }
-});
-
-/*
-  DELETE /api/saved-searches/:search_id - Deletes saved search
-*/
-app.delete('/api/saved-searches/:search_id', authenticateToken, async (req, res) => {
-  try {
-    const { search_id } = req.params;
-    
-    const client = await pool.connect();
-    
-    try {
-      // Check if search exists and user owns it
-      const searchResult = await client.query('SELECT user_id FROM saved_searches WHERE search_id = $1', [search_id]);
-      if (searchResult.rows.length === 0) {
-        return res.status(404).json(createErrorResponse('Saved search not found', null, 'SEARCH_NOT_FOUND'));
-      }
-      
-      if (searchResult.rows[0].user_id !== req.user.user_id && req.user.user_type !== 'admin') {
-        return res.status(403).json(createErrorResponse('Permission denied', null, 'PERMISSION_DENIED'));
-      }
-      
-      await client.query('DELETE FROM saved_searches WHERE search_id = $1', [search_id]);
-      
-      res.status(204).send();
-    } finally {
-      client.release();
-    }
-  } catch (error) {
-    console.error('Delete saved search error:', error);
-    res.status(500).json(createErrorResponse('Internal server error', error, 'INTERNAL_SERVER_ERROR'));
-  }
-});
-
-// ============================================================================
 // HEALTH CHECK AND ERROR HANDLING
 // ============================================================================
 
@@ -3829,11 +3818,9 @@ app.get(/^(?!\/api).*/, (req, res) => {
 // Export for testing
 export { app, pool };
 
-// Start the server only if not in test mode
-if (process.env.NODE_ENV !== 'test') {
-  server.listen(Number(PORT), '0.0.0.0', () => {
-    console.log(`🚀 SunVillas server running on port ${PORT}`);
-    console.log(`📡 WebSocket server ready for real-time features`);
-    console.log(`🌐 API endpoints available at http://localhost:${PORT}/api`);
-  });
-}
+// Start the server
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 SunVillas server running on port ${PORT}`);
+  console.log(`📡 WebSocket server ready for real-time features`);
+  console.log(`🌐 API endpoints available at http://localhost:${PORT}/api`);
+});

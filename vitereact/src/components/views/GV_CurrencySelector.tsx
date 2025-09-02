@@ -20,9 +20,7 @@ interface ExchangeRatesResponse {
 interface UpdateCurrencyResponse {
   currency: string;
   updated_at: string;
-}
-
-    // Currency data with names and symbols
+}/api// Currency data with names and symbols
 const CURRENCY_DATA: Record<string, { name: string; symbol: string }> = {
   'USD': { name: 'US Dollar', symbol: '$' },
   'EUR': { name: 'Euro', symbol: '€' },
@@ -59,9 +57,7 @@ const detectBrowserCurrency = (): string => {
     
     if (currencyPart && SUPPORTED_CURRENCIES.includes(currencyPart.value)) {
       return currencyPart.value;
-    }
-
-    // Fallback based on locale
+    }/api// Fallback based on locale
     if (locale.includes('en-GB') || locale.includes('gb')) return 'GBP';
     if (locale.includes('de') || locale.includes('at')) return 'EUR';
     if (locale.includes('fr')) return 'EUR';

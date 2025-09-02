@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '@/store/main';
 import axios from 'axios';
 
@@ -83,12 +83,14 @@ const UV_InvestmentAnalytics: React.FC = () => {
   const currentUser = useAppStore(state => state.authentication_state.current_user);
   const authToken = useAppStore(state => state.authentication_state.auth_token);
   const userCurrency = useAppStore(state => state.user_preferences.currency);
-
+  const portfolioData = useAppStore(state => state.investment_state.portfolio);
+  const marketData = useAppStore(state => state.investment_state.market_data);
+  const isInvestmentLoading = useAppStore(state => state.investment_state.is_loading);
   const setInvestmentPortfolio = useAppStore(state => state.set_investment_portfolio);
   const setMarketData = useAppStore(state => state.set_market_data);
   const setInvestmentLoading = useAppStore(state => state.set_investment_loading);
 
-
+  const queryClient = useQueryClient();
 
   // API functions
   const fetchMarketData = async (): Promise<{ market_data: MarketData[], total: number }> => {
@@ -120,7 +122,7 @@ const UV_InvestmentAnalytics: React.FC = () => {
     const properties = propertiesResponse.data.properties || [];
     const analyticsPromises = properties.map((property: any) =>
       axios.get(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/properties/${property.property_id}/analytics?year=${new Date().getFullYear()}`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/properties/${property.property_id}/api/analytics?year=${new Date().getFullYear()}`,
         {
           headers: { Authorization: `Bearer ${authToken}` }
         }
@@ -147,7 +149,7 @@ const UV_InvestmentAnalytics: React.FC = () => {
     enabled: !!authToken
   });
 
-  const { data: portfolioAnalytics, isLoading: isPortfolioLoading } = useQuery({
+  const { data: portfolioAnalytics, isLoading: isPortfolioLoading, error: portfolioError } = useQuery({
     queryKey: ['investment-portfolio', currentUser?.user_id],
     queryFn: fetchInvestmentPortfolio,
     staleTime: 5 * 60 * 1000,
@@ -155,7 +157,7 @@ const UV_InvestmentAnalytics: React.FC = () => {
     enabled: !!(authToken && currentUser?.user_id)
   });
 
-  useQuery({
+  const { data: currencyRates, isLoading: isCurrencyLoading } = useQuery({
     queryKey: ['currency-rates', userCurrency],
     queryFn: fetchCurrencyRates,
     staleTime: 10 * 60 * 1000,
@@ -527,7 +529,7 @@ const UV_InvestmentAnalytics: React.FC = () => {
                                 market.investment_score >= 6 ? 'bg-yellow-100 text-yellow-800' :
                                 'bg-red-100 text-red-800'
                               }`}>
-                                {market.investment_score}/10
+                                {market.investment_score}/api/10
                               </span>
                             </td>
                             <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
@@ -774,7 +776,7 @@ const UV_InvestmentAnalytics: React.FC = () => {
                               market.investment_score >= 6 ? 'bg-yellow-100 text-yellow-800' :
                               'bg-red-100 text-red-800'
                             }`}>
-                              Score: {market.investment_score}/10
+                              Score: {market.investment_score}/api/10
                             </span>
                           </div>
                           
@@ -804,7 +806,7 @@ const UV_InvestmentAnalytics: React.FC = () => {
                           <div className="mt-4 pt-4 border-t border-gray-200">
                             <div className="flex justify-between items-center">
                               <div className="flex space-x-6 text-sm text-gray-500">
-                                <span>Demand Score: {market.rental_demand_score}/10</span>
+                                <span>Demand Score: {market.rental_demand_score}/api/10</span>
                                 <span>Liquidity: {market.market_liquidity}</span>
                                 <span>Foreign Ownership: {market.foreign_ownership_allowed ? 'Allowed' : 'Restricted'}</span>
                               </div>

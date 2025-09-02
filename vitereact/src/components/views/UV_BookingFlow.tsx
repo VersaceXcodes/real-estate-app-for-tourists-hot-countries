@@ -248,11 +248,11 @@ const UV_BookingFlow: React.FC = () => {
   }, [propertySummary, nights, guest_count]);
 
   // Check availability
-  useQuery({
+  const { data: availabilityData } = useQuery({
     queryKey: ['availability', property_id, check_in_date, check_out_date],
     queryFn: async () => {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/properties/${property_id}/availability`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/properties/${property_id}/api/availability`,
         {
           params: {
             start_date: check_in_date,
@@ -367,7 +367,7 @@ const UV_BookingFlow: React.FC = () => {
       );
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       // Payment successful, booking is now confirmed
       if (bookingConfirmation) {
         setBookingConfirmation(prev => prev ? {
@@ -570,8 +570,7 @@ const UV_BookingFlow: React.FC = () => {
           onChange={(e) => setBookingData(prev => ({ ...prev, special_requests: e.target.value }))}
           placeholder="Any special requests or notes for the host..."
           className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          rows={4}
-        />
+          rows={4}/api/>
       </div>
 
       {propertySummary && (
@@ -709,7 +708,7 @@ const UV_BookingFlow: React.FC = () => {
               onChange={(e) => setGuestInformation(prev => ({ ...prev, accessibility_needs: e.target.value }))}
               placeholder="Please describe any accessibility requirements..."
               className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              rows={3}/>
+              rows={3}/api/>
           </div>
         </div>
       </div>
@@ -1033,9 +1032,7 @@ const UV_BookingFlow: React.FC = () => {
         </div>
       </>
     );
-  }
-
-    // Error state
+  }/api// Error state
   if (propertyError || !propertySummary) {
     return (
       <>
@@ -1086,7 +1083,7 @@ const UV_BookingFlow: React.FC = () => {
                     <div
                       className={`h-1 w-16 ${
                         stepNumber < currentStep ? 'bg-blue-600' : 'bg-gray-300'
-                      }`}/>
+                      }`}/api/>
                   )}
                 </div>
               ))}

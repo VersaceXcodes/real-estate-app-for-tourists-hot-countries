@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '@/store/main';
 import axios from 'axios';
@@ -61,7 +61,17 @@ interface FavoriteProperty {
   favorited_at: string;
 }
 
-
+interface InvestmentProperty {
+  property_id: string;
+  title: string;
+  purchase_price?: number;
+  current_value?: number;
+  annual_rental_income: number;
+  occupancy_rate: number;
+  rental_yield?: number;
+  roi_percentage?: number;
+  purchase_date?: string;
+}
 
 interface DashboardAnalytics {
   total_trips: number;
@@ -86,14 +96,14 @@ interface NotificationItem {
 
 const UV_UserDashboard: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   // CRITICAL: Individual selectors to avoid infinite loops
   const currentUser = useAppStore(state => state.authentication_state.current_user);
   const authToken = useAppStore(state => state.authentication_state.auth_token);
   const currency = useAppStore(state => state.user_preferences.currency);
-
+  const unreadMessages = useAppStore(state => state.notifications_state.unread_messages);
   const unreadNotifications = useAppStore(state => state.notifications_state.unread_notifications);
 
   // URL parameter management
@@ -109,13 +119,13 @@ const UV_UserDashboard: React.FC = () => {
   };
 
   // API base URL
-  const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api`;
+  const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/api`;
 
   // Fetch user bookings
   const { data: userBookings = [], isLoading: bookingsLoading, error: bookingsError } = useQuery({
     queryKey: ['userBookings', currentUser?.user_id],
     queryFn: async (): Promise<BookingWithProperty[]> => {
-      const response = await axios.get(`${API_BASE_URL}/bookings`, {
+      const response = await axios.get(`${API_BASE_URL}/api/bookings`, {
         params: {
           guest_id: currentUser?.user_id,
           sort_by: 'check_in_date',
@@ -151,7 +161,7 @@ const UV_UserDashboard: React.FC = () => {
   const { data: userProperties = [], isLoading: propertiesLoading } = useQuery({
     queryKey: ['userProperties', currentUser?.user_id],
     queryFn: async (): Promise<PropertyWithAnalytics[]> => {
-      const response = await axios.get(`${API_BASE_URL}/properties`, {
+      const response = await axios.get(`${API_BASE_URL}/api/properties`, {
         params: {
           owner_id: currentUser?.user_id,
           sort_by: 'created_at',
@@ -170,7 +180,7 @@ const UV_UserDashboard: React.FC = () => {
         review_count: property.review_count,
         cover_photo: property.cover_photo_url,
         is_active: property.is_active,
-        // Analytics data for property performance
+        // Mock analytics data - would come from separate endpoint
         occupancy_rate: Math.floor(Math.random() * 40) + 60,
         monthly_revenue: Math.floor(Math.random() * 5000) + 2000,
         active_bookings: Math.floor(Math.random() * 8) + 1
@@ -185,7 +195,7 @@ const UV_UserDashboard: React.FC = () => {
   const { data: userMessages = [], isLoading: messagesLoading } = useQuery({
     queryKey: ['userMessages', currentUser?.user_id],
     queryFn: async (): Promise<ConversationWithParticipant[]> => {
-      const response = await axios.get(`${API_BASE_URL}/conversations`, {
+      const response = await axios.get(`${API_BASE_URL}/api/conversations`, {
         params: {
           is_active: true,
           limit: 10,
@@ -206,7 +216,7 @@ const UV_UserDashboard: React.FC = () => {
           conv.host?.profile_photo_url : conv.guest?.profile_photo_url,
         last_message_text: conv.last_message?.message_text,
         last_message_at: conv.last_message_at,
-        unread_count: Math.floor(Math.random() * 3), // Calculated unread count
+        unread_count: Math.floor(Math.random() * 3), // Mock unread count
         conversation_type: conv.conversation_type
       }));
     },
@@ -219,7 +229,7 @@ const UV_UserDashboard: React.FC = () => {
   const { data: userFavorites = [], isLoading: favoritesLoading } = useQuery({
     queryKey: ['userFavorites', currentUser?.user_id],
     queryFn: async (): Promise<FavoriteProperty[]> => {
-      const response = await axios.get(`${API_BASE_URL}/users/${currentUser?.user_id}/favorites`, {
+      const response = await axios.get(`${API_BASE_URL}/api/users/${currentUser?.user_id}/api/favorites`, {
         params: { limit: 20 },
         headers: { Authorization: `Bearer ${authToken}` }
       });
@@ -245,7 +255,7 @@ const UV_UserDashboard: React.FC = () => {
   const { data: notifications = [], isLoading: notificationsLoading } = useQuery({
     queryKey: ['userNotifications', currentUser?.user_id],
     queryFn: async (): Promise<NotificationItem[]> => {
-      const response = await axios.get(`${API_BASE_URL}/notifications`, {
+      const response = await axios.get(`${API_BASE_URL}/api/notifications`, {
         params: {
           user_id: currentUser?.user_id,
           limit: 10,
@@ -265,7 +275,7 @@ const UV_UserDashboard: React.FC = () => {
   // Mark notification as read mutation
   const markNotificationReadMutation = useMutation({
     mutationFn: async (notificationId: string) => {
-      await axios.put(`${API_BASE_URL}/notifications/${notificationId}`, {
+      await axios.put(`${API_BASE_URL}/api/notifications/${notificationId}`, {
         is_read: true,
         read_at: new Date().toISOString()
       }, {
@@ -280,7 +290,7 @@ const UV_UserDashboard: React.FC = () => {
   // Cancel booking mutation
   const cancelBookingMutation = useMutation({
     mutationFn: async ({ bookingId, reason }: { bookingId: string; reason: string }) => {
-      await axios.delete(`${API_BASE_URL}/bookings/${bookingId}`, {
+      await axios.delete(`${API_BASE_URL}/api/bookings/${bookingId}`, {
         data: { cancellation_reason: reason },
         headers: { Authorization: `Bearer ${authToken}` }
       });
@@ -297,7 +307,7 @@ const UV_UserDashboard: React.FC = () => {
     total_spent: userBookings.reduce((sum, b) => sum + b.total_price, 0),
     properties_owned: userProperties.length,
     total_revenue: userProperties.reduce((sum, p) => sum + p.monthly_revenue, 0),
-    portfolio_value: userProperties.length * 150000, // Estimated portfolio value
+    portfolio_value: userProperties.length * 150000, // Mock calculation
     unread_messages: userMessages.reduce((sum, m) => sum + m.unread_count, 0),
     pending_reviews: userBookings.filter(b => 
       b.booking_status === 'completed' && 
@@ -368,7 +378,7 @@ const UV_UserDashboard: React.FC = () => {
                       <img
                         className="h-12 w-12 rounded-full object-cover"
                         src={currentUser.profile_photo_url}
-                        alt={`${currentUser.first_name} ${currentUser.last_name}`}/>
+                        alt={`${currentUser.first_name} ${currentUser.last_name}`}/api/>
                     ) : (
                       <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
                         <span className="text-blue-600 font-medium text-lg">
@@ -549,7 +559,7 @@ const UV_UserDashboard: React.FC = () => {
                                 <img
                                   className="h-20 w-20 rounded-lg object-cover"
                                   src={booking.property_photo}
-                                  alt={booking.property_title}/>
+                                  alt={booking.property_title}/api/>
                               ) : (
                                 <div className="h-20 w-20 rounded-lg bg-gray-200 flex items-center justify-center">
                                   <span className="text-gray-400 text-2xl">🏠</span>
@@ -744,7 +754,7 @@ const UV_UserDashboard: React.FC = () => {
                               <img
                                 className="h-20 w-20 rounded-lg object-cover"
                                 src={property.cover_photo}
-                                alt={property.title}/>
+                                alt={property.title}/api/>
                             ) : (
                               <div className="h-20 w-20 rounded-lg bg-gray-200 flex items-center justify-center">
                                 <span className="text-gray-400 text-2xl">🏠</span>
@@ -856,7 +866,7 @@ const UV_UserDashboard: React.FC = () => {
                             <img
                               className="w-full h-48 object-cover"
                               src={favorite.cover_photo}
-                              alt={favorite.title}/>
+                              alt={favorite.title}/api/>
                           ) : (
                             <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
                               <span className="text-gray-400 text-4xl">🏠</span>
@@ -944,7 +954,7 @@ const UV_UserDashboard: React.FC = () => {
                               <img
                                 className="h-10 w-10 rounded-full object-cover"
                                 src={message.participant_photo}
-                                alt={message.participant_name}/>
+                                alt={message.participant_name}/api/>
                             ) : (
                               <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
                                 <span className="text-gray-400 text-sm">👤</span>
@@ -1002,7 +1012,7 @@ const UV_UserDashboard: React.FC = () => {
                         <img
                           className="h-24 w-24 rounded-full object-cover"
                           src={currentUser.profile_photo_url}
-                          alt={`${currentUser.first_name} ${currentUser.last_name}`}/>
+                          alt={`${currentUser.first_name} ${currentUser.last_name}`}/api/>
                       ) : (
                         <div className="h-24 w-24 rounded-full bg-blue-100 flex items-center justify-center">
                           <span className="text-blue-600 font-medium text-2xl">

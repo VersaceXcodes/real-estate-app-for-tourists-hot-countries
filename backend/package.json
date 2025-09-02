@@ -9,9 +9,9 @@
     "start": "nodemon --exec \"tsx\" server.ts",
     "build": "tsc",
     "dev": "tsx server.ts",
-    "test": "NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest",
-    "test:watch": "NODE_ENV=test jest --watch",
-    "test:coverage": "NODE_ENV=test jest --coverage"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "nodemonConfig": {
     "ignore": [
@@ -24,30 +24,28 @@
   "license": "ISC",
   "dependencies": {
     "@electric-sql/pglite": "^0.2.4",
-    "@jest/globals": "*",
     "@types/bcryptjs": "^2.4.6",
-    "@types/nodemailer": "^7.0.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
-    "nodemailer": "^7.0.5",
     "pg": "^8.13.3",
-    "socket.io": "*",
-    "socket.io-client": "*",
-    "stripe": "^18.4.0",
     "ts-node": "^10.9.2",
     "uuid": "*",
     "yaml": "^2.5.0",
-    "zod": "^3.24.2"
+    "zod": "^3.24.2",
+    "socket.io": "*",
+    "@jest/globals": "*",
+    "socket.io-client": "*"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/jest": "^29.5.14",
     "@types/jsonwebtoken": "^9.0.6",
+    "@types/mocha": "^10.0.10",
     "@types/morgan": "^1.9.9",
     "@types/node": "^20.11.17",
     "@types/pg": "^8.11.0",
@@ -59,6 +57,6 @@
     "supertest": "^6.3.3",
     "ts-jest": "^29.4.0",
     "tsx": "^4.7.1",
-    "typescript": "^5.9.2"
+    "typescript": "^5.8.2"
   }
 }

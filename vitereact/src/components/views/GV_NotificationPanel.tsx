@@ -74,7 +74,7 @@ const GV_NotificationPanel: React.FC = () => {
   });
 
   // Fetch system alerts for all users
-  const { data: systemAlerts } = useQuery({
+  const { data: systemAlerts, isLoading: alertsLoading } = useQuery({
     queryKey: ['system-alerts'],
     queryFn: async (): Promise<SystemAlertResponse> => {
       const response = await axios.get(
@@ -119,11 +119,6 @@ const GV_NotificationPanel: React.FC = () => {
     }
   });
 
-  // Dismiss toast notification
-  const dismissToast = useCallback((toastId: string) => {
-    setToastNotifications(prev => prev.filter(toast => toast.id !== toastId));
-  }, []);
-
   // Add toast notification helper
   const addToastNotification = useCallback((
     type: ToastNotification['type'], 
@@ -148,7 +143,12 @@ const GV_NotificationPanel: React.FC = () => {
         dismissToast(id);
       }, duration);
     }
-  }, [dismissToast]);
+  }, []);
+
+  // Dismiss toast notification
+  const dismissToast = useCallback((toastId: string) => {
+    setToastNotifications(prev => prev.filter(toast => toast.id !== toastId));
+  }, []);
 
   // Handle notification click
   const handleNotificationClick = async (notificationId: string) => {
@@ -294,7 +294,7 @@ const GV_NotificationPanel: React.FC = () => {
       >
         {toastNotifications.map((toast) => (
           <div key={toast.id} className="pointer-events-auto animate-slide-in-right">
-            <ToastItem toast={toast} />
+            <ToastItem toast={toast}/api/>
           </div>
         ))}
       </div>

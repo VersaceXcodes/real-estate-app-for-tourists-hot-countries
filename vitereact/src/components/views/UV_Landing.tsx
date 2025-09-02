@@ -3,7 +3,6 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAppStore } from '@/store/main';
-import { isValidDateString, getTodayDateString, getMaxBookingDate } from '@/lib/utils';
 
 // API response interfaces
 interface FeaturedDestination {
@@ -62,7 +61,7 @@ const UV_Landing: React.FC = () => {
   const currentUser = useAppStore(state => state.authentication_state.current_user);
   const authToken = useAppStore(state => state.authentication_state.auth_token);
   const currency = useAppStore(state => state.user_preferences.currency);
-  
+  const language = useAppStore(state => state.user_preferences.language);
   const updateSearchCriteria = useAppStore(state => state.update_search_criteria);
 
   // Local state for search form
@@ -197,15 +196,15 @@ const UV_Landing: React.FC = () => {
       const weatherPromises = featuredDestinations.slice(0, 4).map(async (destination) => {
         try {
           const response = await axios.get(
-            `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/locations/${destination.location_id}/weather`,
+            `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/locations/${destination.location_id}/api/weather`,
             { params: { forecast_days: 1 } }
           );
           return {
             location_id: destination.location_id,
             current: response.data.current
           };
-        } catch {
-          // Return fallback data if weather API fails
+        } catch (error) {
+          // Return mock data if weather API fails
           return {
             location_id: destination.location_id,
             current: {
@@ -259,20 +258,6 @@ const UV_Landing: React.FC = () => {
   // Guest count calculation
   const totalGuests = searchForm.adults + searchForm.children + searchForm.infants;
 
-  // Date change handlers with validation
-  const handleCheckInDateChange = (value: string) => {
-    setSearchForm(prev => ({ 
-      ...prev, 
-      check_in_date: value,
-      // Clear check-out if it's before the new check-in date
-      check_out_date: prev.check_out_date && value && prev.check_out_date <= value ? '' : prev.check_out_date
-    }));
-  };
-
-  const handleCheckOutDateChange = (value: string) => {
-    setSearchForm(prev => ({ ...prev, check_out_date: value }));
-  };
-
   // Handle search submission
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -280,31 +265,7 @@ const UV_Landing: React.FC = () => {
     if (!searchForm.destination) {
       alert('Please select a destination');
       return;
-    }
-
-    // Validate dates
-    if (searchForm.check_in_date && !isValidDateString(searchForm.check_in_date)) {
-      alert('Please enter a valid check-in date');
-      return;
-    }
-
-    if (searchForm.check_out_date && !isValidDateString(searchForm.check_out_date)) {
-      alert('Please enter a valid check-out date');
-      return;
-    }
-
-    // Validate date range
-    if (searchForm.check_in_date && searchForm.check_out_date) {
-      const checkIn = new Date(searchForm.check_in_date);
-      const checkOut = new Date(searchForm.check_out_date);
-      
-      if (checkOut <= checkIn) {
-        alert('Check-out date must be after check-in date');
-        return;
-      }
-    }
-    
-    // Update global search state
+    }/api// Update global search state
     updateSearchCriteria({
       destination: searchForm.destination,
       check_in_date: searchForm.check_in_date,
@@ -397,11 +358,9 @@ const UV_Landing: React.FC = () => {
                   <input
                     type="date"
                     value={searchForm.check_in_date}
-                    onChange={(e) => handleCheckInDateChange(e.target.value)}
-                    min={getTodayDateString()}
-                    max={getMaxBookingDate()}
+                    onChange={(e) => setSearchForm(prev => ({ ...prev, check_in_date: e.target.value }))}
+                    min={new Date().toISOString().split('T')[0]}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                    placeholder="Select check-in date"
                   />
                 </div>
 
@@ -413,11 +372,9 @@ const UV_Landing: React.FC = () => {
                   <input
                     type="date"
                     value={searchForm.check_out_date}
-                    onChange={(e) => handleCheckOutDateChange(e.target.value)}
-                    min={searchForm.check_in_date || getTodayDateString()}
-                    max={getMaxBookingDate()}
+                    onChange={(e) => setSearchForm(prev => ({ ...prev, check_out_date: e.target.value }))}
+                    min={searchForm.check_in_date || new Date().toISOString().split('T')[0]}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                    placeholder="Select check-out date"
                   />
                 </div>
 

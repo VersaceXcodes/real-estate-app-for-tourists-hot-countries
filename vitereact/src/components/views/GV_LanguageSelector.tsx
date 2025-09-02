@@ -72,7 +72,7 @@ const GV_LanguageSelector: React.FC = () => {
       console.error('Error detecting browser language:', error);
       return 'en';
     }
-  }, [supportedLanguages]);
+  }, []);
 
   // Initialize language on component mount for guest users
   useEffect(() => {
@@ -89,9 +89,7 @@ const GV_LanguageSelector: React.FC = () => {
     if (languageCode === selectedLanguage) {
       setIsDropdownOpen(false);
       return;
-    }
-
-    // Clear any previous errors
+    }/api// Clear any previous errors
     setUpdateError(null);
 
     // Optimistic update

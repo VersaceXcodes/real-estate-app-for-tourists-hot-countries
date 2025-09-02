@@ -1,5 +1,5 @@
-import React from 'react';
-import { useParams, useSearchParams, Link } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAppStore } from '@/store/main';
@@ -78,7 +78,7 @@ interface Property {
 
 const UV_LocalGuides: React.FC = () => {
   const { destination_slug } = useParams<{ destination_slug?: string }>();
-
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   
   // Get section from URL params or default to 'overview'
@@ -87,7 +87,7 @@ const UV_LocalGuides: React.FC = () => {
   // Individual Zustand selectors to avoid infinite loops
   const currentUser = useAppStore(state => state.authentication_state.current_user);
   const userCurrency = useAppStore(state => state.user_preferences.currency);
-
+  const userLanguage = useAppStore(state => state.user_preferences.language);
   const temperatureUnit = useAppStore(state => state.user_preferences.temperature_unit);
 
   // Section navigation function
@@ -143,7 +143,7 @@ const UV_LocalGuides: React.FC = () => {
     queryKey: ['weather-data', destinationData?.location_id],
     queryFn: async () => {
       if (!destinationData?.location_id) return null;
-      const response = await axios.get(`${apiBaseUrl}/api/locations/${destinationData.location_id}/weather`, {
+      const response = await axios.get(`${apiBaseUrl}/api/locations/${destinationData.location_id}/api/weather`, {
         params: {
           forecast_days: 7,
           include_historical: true
@@ -162,7 +162,7 @@ const UV_LocalGuides: React.FC = () => {
     queryKey: ['attractions-data', destinationData?.location_id],
     queryFn: async () => {
       if (!destinationData?.location_id) return [];
-      const response = await axios.get(`${apiBaseUrl}/api/locations/${destinationData.location_id}/attractions`, {
+      const response = await axios.get(`${apiBaseUrl}/api/locations/${destinationData.location_id}/api/attractions`, {
         params: {
           is_featured: true,
           limit: 20

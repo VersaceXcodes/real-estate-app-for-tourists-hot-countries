@@ -8,7 +8,9 @@ interface PasswordResetPayload {
   email: string;
 }
 
-
+interface EmailVerificationPayload {
+  token: string;
+}
 
 const UV_Authentication: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -43,9 +45,16 @@ const UV_Authentication: React.FC = () => {
     remember_me: false,
   });
   
-
+  const [registrationProgress, setRegistrationProgress] = useState({
+    step: 1,
+    completed_steps: [] as number[],
+  });
   
-
+  const [verificationStatus, setVerificationStatus] = useState({
+    email_sent: false,
+    phone_sent: false,
+    email_verified: false,
+  });
   
   const [passwordResetData, setPasswordResetData] = useState({
     email: '',
@@ -97,7 +106,23 @@ const UV_Authentication: React.FC = () => {
     }
   });
 
-
+  // Email verification mutation
+  const emailVerificationMutation = useMutation({
+    mutationFn: async (payload: EmailVerificationPayload) => {
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/auth/verify-email`,
+        payload,
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      setVerificationStatus(prev => ({ ...prev, email_verified: true }));
+    },
+    onError: (error: any) => {
+      console.error('Email verification error:', error);
+    }
+  });
 
   // Password strength calculator
   const calculatePasswordStrength = (password: string): number => {
@@ -534,7 +559,7 @@ const UV_Authentication: React.FC = () => {
                           <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                             <div
                               className={`h-full transition-all duration-300 ${getPasswordStrengthColor(passwordStrength)}`}
-                              style={{ width: `${passwordStrength}%` }}/>
+                              style={{ width: `${passwordStrength}%` }}/api/>
                           </div>
                         </div>
                         <div className="ml-2 text-xs text-gray-500">

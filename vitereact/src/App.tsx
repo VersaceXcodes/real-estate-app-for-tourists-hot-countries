@@ -2,27 +2,29 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAppStore } from '@/store/main';
-import ErrorBoundary from '@/components/ErrorBoundary';
 
 // Import all required view components
-import GV_TopNav from '@/components/views/GV_TopNav';
-import GV_Footer from '@/components/views/GV_Footer';
-import GV_MobileNav from '@/components/views/GV_MobileNav';
-import GV_NotificationPanel from '@/components/views/GV_NotificationPanel';
-
-import UV_Landing from '@/components/views/UV_Landing';
-import UV_SearchResults from '@/components/views/UV_SearchResults';
-import UV_PropertyDetail from '@/components/views/UV_PropertyDetail';
-import UV_BookingFlow from '@/components/views/UV_BookingFlow';
-import UV_UserDashboard from '@/components/views/UV_UserDashboard';
-import UV_PropertyManagement from '@/components/views/UV_PropertyManagement';
-import UV_MessageCenter from '@/components/views/UV_MessageCenter';
-import UV_UserProfile from '@/components/views/UV_UserProfile';
-import UV_Authentication from '@/components/views/UV_Authentication';
-import UV_InvestmentAnalytics from '@/components/views/UV_InvestmentAnalytics';
-import UV_LocalGuides from '@/components/views/UV_LocalGuides';
-import UV_ReviewSubmission from '@/components/views/UV_ReviewSubmission';
-import UV_PaymentProcessing from '@/components/views/UV_PaymentProcessing';
+import GV_TopNav from '@/components/views/GV_TopNav.tsx';
+import GV_Footer from '@/components/views/GV_Footer.tsx';
+import GV_MobileNav from '@/components/views/GV_MobileNav.tsx';
+import GV_NotificationPanel from '@/components/views/GV_NotificationPanel.tsx';
+import GV_WeatherWidget from '@/components/views/GV_WeatherWidget.tsx';
+import GV_CurrencySelector from '@/components/views/GV_CurrencySelector.tsx';
+import GV_LanguageSelector from '@/components/views/GV_LanguageSelector.tsx';
+import GV_SearchBar from '@/components/views/GV_SearchBar.tsx';
+import UV_Landing from '@/components/views/UV_Landing.tsx';
+import UV_SearchResults from '@/components/views/UV_SearchResults.tsx';
+import UV_PropertyDetail from '@/components/views/UV_PropertyDetail.tsx';
+import UV_BookingFlow from '@/components/views/UV_BookingFlow.tsx';
+import UV_UserDashboard from '@/components/views/UV_UserDashboard.tsx';
+import UV_PropertyManagement from '@/components/views/UV_PropertyManagement.tsx';
+import UV_MessageCenter from '@/components/views/UV_MessageCenter.tsx';
+import UV_UserProfile from '@/components/views/UV_UserProfile.tsx';
+import UV_Authentication from '@/components/views/UV_Authentication.tsx';
+import UV_InvestmentAnalytics from '@/components/views/UV_InvestmentAnalytics.tsx';
+import UV_LocalGuides from '@/components/views/UV_LocalGuides.tsx';
+import UV_ReviewSubmission from '@/components/views/UV_ReviewSubmission.tsx';
+import UV_PaymentProcessing from '@/components/views/UV_PaymentProcessing.tsx';
 
 // Configure React Query client
 const queryClient = new QueryClient({
@@ -89,11 +91,10 @@ const App: React.FC = () => {
   }
   
   return (
-    <ErrorBoundary>
-      <Router>
-        <QueryClientProvider client={queryClient}>
-          <AppLayout>
-            <Routes>
+    <Router>
+      <QueryClientProvider client={queryClient}>
+        <AppLayout>
+          <Routes>
             {/* Public Routes */}
             <Route path="/" element={<UV_Landing />} />
             
@@ -219,7 +220,6 @@ const App: React.FC = () => {
         </AppLayout>
       </QueryClientProvider>
     </Router>
-    </ErrorBoundary>
   );
 };
 

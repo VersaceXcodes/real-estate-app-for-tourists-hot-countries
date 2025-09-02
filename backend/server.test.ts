@@ -32,253 +32,20 @@ jest.mock('stripe', () => ({
 global.fetch = jest.fn();
 
 describe('SunVillas Backend API Tests', () => {
-  let testUsers: any = {};
-  let testProperties: any = {};
-  let testBookings: any = {};
-  let testConversations: any = {};
-  let authTokens: any = {};
-  let testPayment: any = {};
+  let testUsers = {};
+  let testProperties = {};
+  let testBookings = {};
+  let testConversations = {};
+  let authTokens = {};
 
   beforeAll(async () => {
-    // Clean up any existing test data first (in proper order to handle foreign keys)
-    try {
-      const testEmails = ['testuser@example.com', 'testhost@example.com', 'newuser@example.com', 'newhost@example.com'];
-      
-      // Get user IDs first
-      const userResult = await pool.query('SELECT user_id FROM users WHERE email = ANY($1)', [testEmails]);
-      const userIds = userResult.rows.map(row => row.user_id);
-      
-      if (userIds.length > 0) {
-        // Get property IDs
-        const propertyResult = await pool.query('SELECT property_id FROM properties WHERE owner_id = ANY($1)', [userIds]);
-        const propertyIds = propertyResult.rows.map(row => row.property_id);
-        
-        // Get booking IDs
-        const bookingResult = await pool.query('SELECT booking_id FROM bookings WHERE guest_id = ANY($1) OR property_id = ANY($2)', [userIds, propertyIds]);
-        const bookingIds = bookingResult.rows.map(row => row.booking_id);
-        
-        // Get conversation IDs
-        const conversationResult = await pool.query('SELECT conversation_id FROM conversations WHERE guest_id = ANY($1) OR host_id = ANY($1)', [userIds]);
-        const conversationIds = conversationResult.rows.map(row => row.conversation_id);
-        
-        // Delete in proper order to avoid foreign key constraint violations
-        if (conversationIds.length > 0) {
-          await pool.query('DELETE FROM messages WHERE conversation_id = ANY($1)', [conversationIds]);
-        }
-        
-        if (userIds.length > 0) {
-          await pool.query('DELETE FROM conversations WHERE guest_id = ANY($1) OR host_id = ANY($1)', [userIds]);
-        }
-        
-        if (bookingIds.length > 0) {
-          await pool.query('DELETE FROM reviews WHERE booking_id = ANY($1)', [bookingIds]);
-          await pool.query('DELETE FROM payments WHERE booking_id = ANY($1)', [bookingIds]);
-        }
-        
-        if (propertyIds.length > 0) {
-          await pool.query('DELETE FROM reviews WHERE property_id = ANY($1)', [propertyIds]);
-        }
-        
-        if (userIds.length > 0 || propertyIds.length > 0) {
-          await pool.query('DELETE FROM bookings WHERE guest_id = ANY($1) OR property_id = ANY($2)', [userIds, propertyIds]);
-        }
-        
-        if (userIds.length > 0) {
-          await pool.query('DELETE FROM user_favorites WHERE user_id = ANY($1)', [userIds]);
-          await pool.query('DELETE FROM notifications WHERE user_id = ANY($1)', [userIds]);
-        }
-        
-        if (propertyIds.length > 0) {
-          await pool.query('DELETE FROM property_availability WHERE property_id = ANY($1)', [propertyIds]);
-          await pool.query('DELETE FROM property_photos WHERE property_id = ANY($1)', [propertyIds]);
-          await pool.query('DELETE FROM properties WHERE property_id = ANY($1)', [propertyIds]);
-        }
-        
-        if (userIds.length > 0) {
-          await pool.query('DELETE FROM users WHERE user_id = ANY($1)', [userIds]);
-        }
-      }
-    } catch (error) {
-      console.log('Cleanup error:', error);
-    }
-
-    // Create test users for all tests to use
-    const guestData = {
-      email: 'testuser@example.com',
-      password: 'password123',
-      first_name: 'Test',
-      last_name: 'User',
-      phone_number: '+1-555-0123',
-      user_type: 'guest',
-      currency: 'USD',
-      language: 'en',
-      temperature_unit: 'celsius'
-    };
-
-    const guestResponse = await request(app)
-      .post('/api/auth/register')
-      .send(guestData);
-
-    if (guestResponse.status === 201) {
-      testUsers.guest = guestResponse.body.user;
-      authTokens.guest = guestResponse.body.token;
-      console.log('Created guest user:', testUsers.guest?.user_id);
-    } else {
-      console.error('Failed to create guest user:', guestResponse.status, guestResponse.body);
-      // Don't throw error, just continue with empty test data
-      testUsers.guest = null;
-      authTokens.guest = null;
-    }
-
-    const hostData = {
-      email: 'testhost@example.com',
-      password: 'hostpass123',
-      first_name: 'Test',
-      last_name: 'Host',
-      user_type: 'host',
-      bio: 'Experienced property host',
-      languages_spoken: ['English', 'Spanish']
-    };
-
-    const hostResponse = await request(app)
-      .post('/api/auth/register')
-      .send(hostData);
-
-    if (hostResponse.status === 201) {
-      testUsers.host = hostResponse.body.user;
-      authTokens.host = hostResponse.body.token;
-      console.log('Created host user:', testUsers.host?.user_id);
-    } else {
-      console.error('Failed to create host user:', hostResponse.status, hostResponse.body);
-      // Don't throw error, just continue with empty test data
-      testUsers.host = null;
-      authTokens.host = null;
-    }
-
-    // Create test property if host user was created successfully
-    if (testUsers.host && testUsers.host.user_id) {
-      const propertyData = {
-        owner_id: testUsers.host.user_id,
-        title: 'Test Beachfront Villa',
-        description: 'Beautiful villa for testing',
-        property_type: 'villa',
-        country: 'Mexico',
-        city: 'Tulum',
-        region: 'Quintana Roo',
-        neighborhood: 'Zona Hotelera',
-        guest_count: 8,
-        bedrooms: 4,
-        bathrooms: 3,
-        property_size: 200,
-        base_price_per_night: 450.00,
-        location_id: 'loc_001',
-        address: '123 Beach Road, Tulum, Mexico',
-        latitude: 20.2114,
-        longitude: -87.4653,
-        distance_beach: 0.1,
-        distance_airport: 45.0,
-        cleaning_fee: 50.00,
-        security_deposit: 200.00,
-        extra_guest_fee: 25.00,
-        pet_fee: 0.00,
-        maximum_stay: 30,
-        amenities: ['pool', 'wifi', 'kitchen', 'parking'],
-        house_rules: ['No smoking', 'No pets'],
-        cancellation_policy: 'moderate',
-        instant_booking: true,
-        minimum_stay: 2,
-        maximum_stay: 30,
-        check_in_time: '15:00',
-        check_out_time: '11:00'
-      };
-
-      try {
-        const propertyResponse = await request(app)
-          .post('/api/properties')
-          .set('Authorization', `Bearer ${authTokens.host}`)
-          .send(propertyData);
-
-        if (propertyResponse.status === 201) {
-          testProperties.main = propertyResponse.body;
-          console.log('Created test property:', testProperties.main?.property_id);
-        } else {
-          console.error('Failed to create test property:', propertyResponse.status, propertyResponse.body);
-        }
-      } catch (error) {
-        console.error('Failed to create test property:', error);
-      }
-    }
-
-    // Verify test data was created
-    if (!testUsers.guest || !testUsers.host || !authTokens.guest || !authTokens.host) {
-      console.warn('Warning: Some test users were not created. Some tests may fail.');
-    }
-  }, 30000); // Increase timeout for setup
+    // Setup test database connection
+    await pool.query('BEGIN');
+  });
 
   afterAll(async () => {
-    // Cleanup test database in proper order
-    try {
-      const testEmails = ['testuser@example.com', 'testhost@example.com', 'newuser@example.com', 'newhost@example.com'];
-      
-      // Get user IDs first
-      const userResult = await pool.query('SELECT user_id FROM users WHERE email = ANY($1)', [testEmails]);
-      const userIds = userResult.rows.map(row => row.user_id);
-      
-      if (userIds.length > 0) {
-        // Get property IDs
-        const propertyResult = await pool.query('SELECT property_id FROM properties WHERE owner_id = ANY($1)', [userIds]);
-        const propertyIds = propertyResult.rows.map(row => row.property_id);
-        
-        // Get booking IDs
-        const bookingResult = await pool.query('SELECT booking_id FROM bookings WHERE guest_id = ANY($1) OR property_id = ANY($2)', [userIds, propertyIds]);
-        const bookingIds = bookingResult.rows.map(row => row.booking_id);
-        
-        // Get conversation IDs
-        const conversationResult = await pool.query('SELECT conversation_id FROM conversations WHERE guest_id = ANY($1) OR host_id = ANY($1)', [userIds]);
-        const conversationIds = conversationResult.rows.map(row => row.conversation_id);
-        
-        // Delete in proper order to avoid foreign key constraint violations
-        if (conversationIds.length > 0) {
-          await pool.query('DELETE FROM messages WHERE conversation_id = ANY($1)', [conversationIds]);
-        }
-        
-        if (userIds.length > 0) {
-          await pool.query('DELETE FROM conversations WHERE guest_id = ANY($1) OR host_id = ANY($1)', [userIds]);
-        }
-        
-        if (bookingIds.length > 0) {
-          await pool.query('DELETE FROM reviews WHERE booking_id = ANY($1)', [bookingIds]);
-          await pool.query('DELETE FROM payments WHERE booking_id = ANY($1)', [bookingIds]);
-        }
-        
-        if (propertyIds.length > 0) {
-          await pool.query('DELETE FROM reviews WHERE property_id = ANY($1)', [propertyIds]);
-        }
-        
-        if (userIds.length > 0 || propertyIds.length > 0) {
-          await pool.query('DELETE FROM bookings WHERE guest_id = ANY($1) OR property_id = ANY($2)', [userIds, propertyIds]);
-        }
-        
-        if (userIds.length > 0) {
-          await pool.query('DELETE FROM user_favorites WHERE user_id = ANY($1)', [userIds]);
-          await pool.query('DELETE FROM notifications WHERE user_id = ANY($1)', [userIds]);
-        }
-        
-        if (propertyIds.length > 0) {
-          await pool.query('DELETE FROM property_availability WHERE property_id = ANY($1)', [propertyIds]);
-          await pool.query('DELETE FROM property_photos WHERE property_id = ANY($1)', [propertyIds]);
-          await pool.query('DELETE FROM properties WHERE property_id = ANY($1)', [propertyIds]);
-        }
-        
-        if (userIds.length > 0) {
-          await pool.query('DELETE FROM users WHERE user_id = ANY($1)', [userIds]);
-        }
-      }
-    } catch (error) {
-      console.log('Cleanup error:', error);
-    }
-    
-    // Close database connection
+    // Cleanup test database
+    await pool.query('ROLLBACK');
     await pool.end();
   });
 
@@ -337,11 +104,11 @@ describe('SunVillas Backend API Tests', () => {
     describe('POST /api/auth/register', () => {
       it('should register a new user successfully', async () => {
         const userData = {
-          email: 'newuser@example.com',
+          email: 'testuser@example.com',
           password: 'password123', // Plain text for testing
-          first_name: 'New',
+          first_name: 'Test',
           last_name: 'User',
-          phone_number: '+1-555-0124',
+          phone_number: '+1-555-0123',
           user_type: 'guest',
           currency: 'USD',
           language: 'en',
@@ -360,13 +127,17 @@ describe('SunVillas Backend API Tests', () => {
         expect(response.body.user.is_verified).toBe(false);
         expect(response.body.user.is_active).toBe(true);
         expect(typeof response.body.token).toBe('string');
+
+        // Store for cleanup and further tests
+        testUsers.guest = response.body.user;
+        authTokens.guest = response.body.token;
       });
 
       it('should register a host user successfully', async () => {
         const hostData = {
-          email: 'newhost@example.com',
+          email: 'testhost@example.com',
           password: 'hostpass123',
-          first_name: 'New',
+          first_name: 'Test',
           last_name: 'Host',
           user_type: 'host',
           bio: 'Experienced property host',
@@ -381,6 +152,9 @@ describe('SunVillas Backend API Tests', () => {
         expect(response.body.user.user_type).toBe('host');
         expect(response.body.user.bio).toBe(hostData.bio);
         expect(response.body.user.languages_spoken).toEqual(hostData.languages_spoken);
+
+        testUsers.host = response.body.user;
+        authTokens.host = response.body.token;
       });
 
       it('should fail with invalid email format', async () => {
@@ -414,7 +188,7 @@ describe('SunVillas Backend API Tests', () => {
           .expect(400);
 
         expect(response.body).toHaveProperty('error');
-        expect(response.body.error).toContain('Password must be at least 8 characters long');
+        expect(response.body.error).toContain('password');
       });
 
       it('should fail with duplicate email', async () => {
@@ -818,9 +592,8 @@ describe('SunVillas Backend API Tests', () => {
           .expect(200);
 
         response.body.properties.forEach(property => {
-          const price = parseFloat(property.base_price_per_night);
-          expect(price).toBeGreaterThanOrEqual(200);
-          expect(price).toBeLessThanOrEqual(500);
+          expect(property.base_price_per_night).toBeGreaterThanOrEqual(200);
+          expect(property.base_price_per_night).toBeLessThanOrEqual(500);
         });
       });
 
@@ -843,12 +616,12 @@ describe('SunVillas Backend API Tests', () => {
         const response = await request(app)
           .get('/api/properties')
           .query({
-            min_guest_count: 2
+            min_guest_count: 6
           })
           .expect(200);
 
         response.body.properties.forEach(property => {
-          expect(property.guest_count).toBeGreaterThanOrEqual(2);
+          expect(property.guest_count).toBeGreaterThanOrEqual(6);
         });
       });
 
@@ -1190,15 +963,11 @@ describe('SunVillas Backend API Tests', () => {
         expect(response.body).toHaveProperty('payments');
       });
 
-      it('should allow host to access booking for their property', async () => {
-        const response = await request(app)
+      it('should fail to access others booking', async () => {
+        await request(app)
           .get(`/api/bookings/${testBookings.main.booking_id}`)
           .set('Authorization', `Bearer ${authTokens.host}`)
-          .expect(200);
-        
-        expect(response.body.booking_id).toBe(testBookings.main.booking_id);
-        expect(response.body).toHaveProperty('property');
-        expect(response.body).toHaveProperty('guest');
+          .expect(403);
       });
     });
 
@@ -1432,10 +1201,6 @@ describe('SunVillas Backend API Tests', () => {
         const adminResponse = await request(app)
           .post('/api/auth/register')
           .send(adminData);
-
-        if (!adminResponse.body.user) {
-          throw new Error(`Admin registration failed: ${JSON.stringify(adminResponse.body)}`);
-        }
 
         const unauthorizedConversationData = {
           guest_id: adminResponse.body.user.user_id,
@@ -1911,7 +1676,7 @@ describe('SunVillas Backend API Tests', () => {
       it('should handle malformed UUID', async () => {
         await request(app)
           .get('/api/properties/invalid-uuid')
-          .expect(404);
+          .expect(400);
       });
     });
 
@@ -1923,10 +1688,9 @@ describe('SunVillas Backend API Tests', () => {
             check_in_date: 'invalid-date',
             check_out_date: '2024-03-15'
           })
-          .expect(200);
+          .expect(400);
 
-        // Server currently doesn't validate date formats, returns all properties
-        expect(response.body).toHaveProperty('properties');
+        expect(response.body).toHaveProperty('error');
       });
 
       it('should handle negative price values', async () => {
@@ -1936,10 +1700,9 @@ describe('SunVillas Backend API Tests', () => {
             price_min: -100,
             price_max: 500
           })
-          .expect(200);
+          .expect(400);
 
-        // Server currently doesn't validate negative prices, returns all properties
-        expect(response.body).toHaveProperty('properties');
+        expect(response.body).toHaveProperty('error');
       });
 
       it('should handle invalid guest count', async () => {
@@ -1948,10 +1711,9 @@ describe('SunVillas Backend API Tests', () => {
           .query({
             min_guest_count: 0
           })
-          .expect(200);
+          .expect(400);
 
-        // Server currently doesn't validate guest count, returns all properties
-        expect(response.body).toHaveProperty('properties');
+        expect(response.body).toHaveProperty('error');
       });
     });
 
@@ -1979,10 +1741,10 @@ describe('SunVillas Backend API Tests', () => {
 
         const response = await request(app)
           .get('/api/locations/loc_001/weather')
-          .expect(200);
+          .expect(503);
 
-        // The beforeEach mock overrides this, so we get successful response
-        expect(response.body).toHaveProperty('current');
+        expect(response.body).toHaveProperty('error');
+        expect(response.body.error).toContain('weather service');
       });
 
       it('should handle currency API failure gracefully', async () => {
@@ -1992,10 +1754,9 @@ describe('SunVillas Backend API Tests', () => {
 
         const response = await request(app)
           .get('/api/currency-rates')
-          .expect(200);
+          .expect(503);
 
-        // The beforeEach mock overrides this, so we get successful response
-        expect(response.body).toHaveProperty('rates');
+        expect(response.body).toHaveProperty('error');
       });
     });
   });
@@ -2003,16 +1764,14 @@ describe('SunVillas Backend API Tests', () => {
   describe('WebSocket Real-time Features', () => {
     let clientSocket;
     let serverSocket;
-    let httpServer;
-    let io;
 
     beforeAll((done) => {
       // Setup WebSocket connection for testing
       const { Server } = require('socket.io');
       const Client = require('socket.io-client');
       
-      httpServer = require('http').createServer();
-      io = new Server(httpServer);
+      const httpServer = require('http').createServer();
+      const io = new Server(httpServer);
       
       httpServer.listen(() => {
         const port = httpServer.address().port;
@@ -2028,21 +1787,9 @@ describe('SunVillas Backend API Tests', () => {
       });
     });
 
-    afterAll((done) => {
-      if (clientSocket) {
-        clientSocket.close();
-      }
-      if (serverSocket) {
-        serverSocket.disconnect(true);
-      }
-      if (io) {
-        io.close();
-      }
-      if (httpServer) {
-        httpServer.close(done);
-      } else {
-        done();
-      }
+    afterAll(() => {
+      if (clientSocket) clientSocket.close();
+      if (serverSocket) serverSocket.disconnect(true);
     });
 
     describe('Message Events', () => {

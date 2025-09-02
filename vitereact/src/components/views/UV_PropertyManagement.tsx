@@ -114,7 +114,6 @@ interface CreatePropertyPayload {
   instant_booking?: boolean;
   host_language?: string[];
   cancellation_policy?: 'flexible' | 'moderate' | 'strict';
-  is_active?: boolean;
 }
 
 interface UpdatePropertyPayload {
@@ -168,7 +167,7 @@ const UV_PropertyManagement: React.FC = () => {
   const setOwnedProperties = useAppStore(state => state.set_owned_properties);
   const addOwnedProperty = useAppStore(state => state.add_owned_property);
   const updateOwnedProperty = useAppStore(state => state.update_owned_property);
-
+  const setPropertyManagementLoading = useAppStore(state => state.set_property_management_loading);
 
   // Local state for forms
   const [createMode, setCreateMode] = useState(false);
@@ -222,7 +221,7 @@ const UV_PropertyManagement: React.FC = () => {
   // API function to fetch property photos
   const fetchPropertyPhotos = async (propertyId: string): Promise<PropertyPhoto[]> => {
     const response = await axios.get(
-      `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/properties/${propertyId}/photos`
+      `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/properties/${propertyId}/api/photos`
     );
     return response.data;
   };
@@ -413,9 +412,7 @@ const UV_PropertyManagement: React.FC = () => {
     if (wizardStep < 6) {
       setWizardStep(wizardStep + 1);
       return;
-    }
-
-    // Final submission
+    }/api// Final submission
     if (createMode) {
       if (!propertyFormData.latitude) propertyFormData.latitude = 0;
       if (!propertyFormData.longitude) propertyFormData.longitude = 0;
@@ -536,7 +533,7 @@ const UV_PropertyManagement: React.FC = () => {
                         {index < 5 && (
                           <div className={`flex-1 h-1 mx-2 ${
                             step < wizardStep ? 'bg-blue-600' : 'bg-gray-200'
-                          }`}/>
+                          }`}/api/>
                         )}
                       </React.Fragment>
                     ))}
@@ -689,7 +686,7 @@ const UV_PropertyManagement: React.FC = () => {
                           onChange={(e) => handleInputChange('bedrooms', parseInt(e.target.value) || 0)}
                           className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                             formErrors.bedrooms ? 'border-red-500' : 'border-gray-300'
-                          }`}/>
+                          }`}/api/>
                         {formErrors.bedrooms && (
                           <p className="mt-1 text-sm text-red-600">{formErrors.bedrooms}</p>
                         )}
@@ -707,7 +704,7 @@ const UV_PropertyManagement: React.FC = () => {
                           onChange={(e) => handleInputChange('bathrooms', parseFloat(e.target.value) || 0)}
                           className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                             formErrors.bathrooms ? 'border-red-500' : 'border-gray-300'
-                          }`}/>
+                          }`}/api/>
                         {formErrors.bathrooms && (
                           <p className="mt-1 text-sm text-red-600">{formErrors.bathrooms}</p>
                         )}
@@ -724,7 +721,7 @@ const UV_PropertyManagement: React.FC = () => {
                           onChange={(e) => handleInputChange('guest_count', parseInt(e.target.value) || 1)}
                           className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                             formErrors.guest_count ? 'border-red-500' : 'border-gray-300'
-                          }`}/>
+                          }`}/api/>
                         {formErrors.guest_count && (
                           <p className="mt-1 text-sm text-red-600">{formErrors.guest_count}</p>
                         )}
@@ -978,7 +975,7 @@ const UV_PropertyManagement: React.FC = () => {
                         <p><strong>Type:</strong> {propertyFormData.property_type}</p>
                         <p><strong>Location:</strong> {propertyFormData.city}, {propertyFormData.country}</p>
                         <p><strong>Capacity:</strong> {propertyFormData.guest_count} guests, {propertyFormData.bedrooms} bedrooms, {propertyFormData.bathrooms} bathrooms</p>
-                        <p><strong>Price:</strong> ${propertyFormData.base_price_per_night}/night</p>
+                        <p><strong>Price:</strong> ${propertyFormData.base_price_per_night}/api/night</p>
                         <p><strong>Amenities:</strong> {propertyFormData.amenities?.length || 0} selected</p>
                       </div>
                     </div>

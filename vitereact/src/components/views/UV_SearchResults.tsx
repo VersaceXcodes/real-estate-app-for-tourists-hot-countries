@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
@@ -51,9 +51,7 @@ interface SavedSearch {
 interface UserFavorite {
   property_id: string;
   favorited_at: string;
-}
-
-// Filter interfaces
+}/api// Filter interfaces
 interface SearchFilters {
   destination: string;
   check_in_date: string;
@@ -80,14 +78,17 @@ const UV_SearchResults: React.FC = () => {
   const isAuthenticated = useAppStore(state => state.authentication_state.authentication_status.is_authenticated);
   const currentUser = useAppStore(state => state.authentication_state.current_user);
   const authToken = useAppStore(state => state.authentication_state.auth_token);
-
+  const userCurrency = useAppStore(state => state.user_preferences.currency);
+  const searchState = useAppStore(state => state.search_state);
+  const updateSearchCriteria = useAppStore(state => state.update_search_criteria);
+  const setSearchResults = useAppStore(state => state.set_search_results);
 
   // Local state
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>('grid');
   const [showSaveSearchModal, setShowSaveSearchModal] = useState(false);
   const [saveSearchName, setSaveSearchName] = useState('');
-
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   // Parse URL parameters to search filters
   const searchFilters = useMemo((): SearchFilters => {
@@ -110,34 +111,31 @@ const UV_SearchResults: React.FC = () => {
     };
   }, [searchParams]);
 
-  // Update URL when filters change - FIXED: Removed searchParams from dependencies to prevent infinite loop
+  // Update URL when filters change
   const updateURL = useCallback((newFilters: Partial<SearchFilters>, newPage: number = 1) => {
-    const params = new URLSearchParams(searchParams);
+    const params = new URLSearchParams();
     
-    // Update only the changed filters
-    Object.entries(newFilters).forEach(([key, value]) => {
+    const filters = { ...searchFilters, ...newFilters };
+    
+    Object.entries(filters).forEach(([key, value]) => {
       if (value && value !== '' && value !== 0 && (Array.isArray(value) ? value.length > 0 : true)) {
         if (Array.isArray(value)) {
           params.set(key, value.join(','));
         } else {
           params.set(key, value.toString());
         }
-      } else {
-        params.delete(key);
       }
     });
     
     if (newPage > 1) {
       params.set('page', newPage.toString());
-    } else {
-      params.delete('page');
     }
     
     params.set('view_type', viewMode);
     
     setSearchParams(params);
     setCurrentPage(newPage);
-  }, [viewMode, setSearchParams]);
+  }, [searchFilters, viewMode, setSearchParams]);
 
   // Property search query
   const { data: searchData, isLoading: isSearching, error: searchError } = useQuery({
@@ -175,7 +173,7 @@ const UV_SearchResults: React.FC = () => {
       if (!currentUser?.user_id || !authToken) return [];
       
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser.user_id}/favorites`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser.user_id}/api/favorites`,
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
       
@@ -212,12 +210,12 @@ const UV_SearchResults: React.FC = () => {
       
       if (isFavorited) {
         await axios.delete(
-          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser.user_id}/favorites/${propertyId}`,
+          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser.user_id}/api/favorites/${propertyId}`,
           { headers: { Authorization: `Bearer ${authToken}` } }
         );
       } else {
         await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser.user_id}/favorites`,
+          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser.user_id}/api/favorites`,
           { property_id: propertyId },
           { headers: { Authorization: `Bearer ${authToken}` } }
         );
@@ -300,7 +298,13 @@ const UV_SearchResults: React.FC = () => {
   // Available property types
   const propertyTypes = ['villa', 'apartment', 'house', 'resort', 'hotel'];
 
-
+  // Sort options
+  const sortOptions = [
+    { value: 'created_at', label: 'Newest First' },
+    { value: 'price', label: 'Price: Low to High' },
+    { value: 'rating', label: 'Highest Rated' },
+    { value: 'distance_beach', label: 'Closest to Beach' },
+  ];
 
   // Calculate pagination
   const totalResults = searchData?.total || 0;
@@ -674,7 +678,7 @@ const UV_SearchResults: React.FC = () => {
                           <div className="relative">
                             <Link to={`/property/${property.property_id}${searchFilters.check_in_date ? `?check_in_date=${searchFilters.check_in_date}&check_out_date=${searchFilters.check_out_date}&guest_count=${searchFilters.guest_count}` : ''}`}>
                               <img
-                                src={property.cover_photo_url || property.photos.find(p => p.is_cover_photo)?.photo_url || 'https://via.placeholder.com/400x250?text=Property+Image'}
+                                src={property.cover_photo_url || property.photos.find(p => p.is_cover_photo)?.photo_url || '/api/placeholder/400/250'}
                                 alt={property.title}
                                 className="w-full h-48 object-cover rounded-t-lg"
                               />
@@ -777,7 +781,7 @@ const UV_SearchResults: React.FC = () => {
                             <div className="relative flex-shrink-0 sm:w-64">
                               <Link to={`/property/${property.property_id}${searchFilters.check_in_date ? `?check_in_date=${searchFilters.check_in_date}&check_out_date=${searchFilters.check_out_date}&guest_count=${searchFilters.guest_count}` : ''}`}>
                                 <img
-                                  src={property.cover_photo_url || property.photos.find(p => p.is_cover_photo)?.photo_url || 'https://via.placeholder.com/400x200?text=Property+Image'}
+                                  src={property.cover_photo_url || property.photos.find(p => p.is_cover_photo)?.photo_url || '/api/placeholder/400/200'}
                                   alt={property.title}
                                   className="w-full h-48 sm:h-full object-cover rounded-t-lg sm:rounded-l-lg sm:rounded-t-none"
                                 />

@@ -1,9 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '@/store/main';
 import axios from 'axios';
-import { getTodayDateString, getMaxBookingDate } from '@/lib/utils';
 
 // Interfaces for API responses
 interface PropertyPhoto {
@@ -50,7 +49,35 @@ interface HostInformation {
   member_since: string;
 }
 
-
+interface PropertyData {
+  property_id: string;
+  owner_id: string;
+  title: string;
+  description: string;
+  property_type: string;
+  country: string;
+  city: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  bedrooms: number;
+  bathrooms: number;
+  guest_count: number;
+  base_price_per_night: number;
+  currency: string;
+  cleaning_fee?: number;
+  security_deposit?: number;
+  amenities: string[];
+  house_rules: string[];
+  check_in_time: string;
+  check_out_time: string;
+  minimum_stay: number;
+  maximum_stay?: number;
+  instant_booking: boolean;
+  cancellation_policy: string;
+  average_rating?: number;
+  review_count: number;
+}
 
 interface PropertyDetailResponse {
   property_id: string;
@@ -120,7 +147,7 @@ const UV_PropertyDetail: React.FC = () => {
   const authToken = useAppStore(state => state.authentication_state.auth_token);
   const currency = useAppStore(state => state.user_preferences.currency);
   const temperatureUnit = useAppStore(state => state.user_preferences.temperature_unit);
-
+  const updateSearchCriteria = useAppStore(state => state.update_search_criteria);
   const setCurrentBooking = useAppStore(state => state.set_current_booking);
 
   // Local state management
@@ -138,7 +165,7 @@ const UV_PropertyDetail: React.FC = () => {
   const [showAllAmenities, setShowAllAmenities] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
-  const [reviewsPage] = useState(0);
+  const [reviewsPage, setReviewsPage] = useState(0);
 
   // Fetch property details
   const { data: propertyData, isLoading: propertyLoading, error: propertyError } = useQuery({
@@ -168,7 +195,7 @@ const UV_PropertyDetail: React.FC = () => {
       if (!property_id) throw new Error('Property ID is required');
       
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/reviews?property_id=${property_id}&limit=10&offset=${reviewsPage * 10}&sort_by=created_at&sort_order=desc`
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/properties/${property_id}/api/reviews?limit=10&offset=${reviewsPage * 10}&sort_by=created_at&sort_order=desc`
       );
       return response.data;
     },
@@ -185,7 +212,7 @@ const UV_PropertyDetail: React.FC = () => {
       if (!currentUser?.user_id || !authToken) return { favorites: [] };
       
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser.user_id}/favorites`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser.user_id}/api/favorites`,
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
       return response.data;
@@ -202,7 +229,7 @@ const UV_PropertyDetail: React.FC = () => {
     queryFn: async (): Promise<WeatherData> => {
       if (!propertyData?.latitude || !propertyData?.longitude) throw new Error('Location data required');
       
-      // Weather data for property location
+      // Mock weather data since location_id derivation isn't implemented
       return {
         current: {
           temperature_avg: 28.5,
@@ -229,7 +256,7 @@ const UV_PropertyDetail: React.FC = () => {
     queryFn: async (): Promise<{ attractions: Attraction[] }> => {
       if (!propertyData?.latitude || !propertyData?.longitude) throw new Error('Location data required');
       
-      // Attractions data for property location
+      // Mock attractions data
       return {
         attractions: [
           { attraction_id: '1', name: 'Beach Access', category: 'beach', distance: 0.2, rating: 4.8 },
@@ -256,12 +283,12 @@ const UV_PropertyDetail: React.FC = () => {
       
       if (isFavorited) {
         await axios.delete(
-          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser.user_id}/favorites/${property_id}`,
+          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser.user_id}/api/favorites/${property_id}`,
           { headers: { Authorization: `Bearer ${authToken}` } }
         );
       } else {
         await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser.user_id}/favorites`,
+          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/${currentUser.user_id}/api/favorites`,
           { property_id },
           { headers: { Authorization: `Bearer ${authToken}` } }
         );
@@ -330,9 +357,7 @@ const UV_PropertyDetail: React.FC = () => {
     if (!selectedDates.check_in_date || !selectedDates.check_out_date) {
       alert('Please select check-in and check-out dates');
       return;
-    }
-
-    // Update global booking state
+    }/api// Update global booking state
     setCurrentBooking({
       booking_id: '',
       property_id: property_id!,
@@ -353,10 +378,10 @@ const UV_PropertyDetail: React.FC = () => {
       special_requests: '',
       booking_status: 'pending',
       payment_status: 'pending',
-      cancellation_reason: undefined,
-      cancelled_at: undefined,
-      check_in_instructions: undefined,
-      access_code: undefined,
+      cancellation_reason: null,
+      cancelled_at: null,
+      check_in_instructions: null,
+      access_code: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     });
@@ -425,7 +450,7 @@ const UV_PropertyDetail: React.FC = () => {
           <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
             <div className="relative w-full h-full max-w-6xl max-h-full flex flex-col">
               <div className="flex justify-between items-center p-4 text-white">
-                <h3 className="text-lg font-semibold">{selectedPhotoIndex + 1} / {propertyData.photos.length}</h3>
+                <h3 className="text-lg font-semibold">{selectedPhotoIndex + 1}/api/ {propertyData.photos.length}</h3>
                 <button
                   onClick={() => setShowAllPhotos(false)}
                   className="text-white hover:text-gray-300 text-2xl font-bold"
@@ -535,8 +560,7 @@ const UV_PropertyDetail: React.FC = () => {
                       onClick={() => {
                         setSelectedPhotoIndex(0);
                         setShowAllPhotos(true);
-                      }}
-                    />
+                      }}/api/>
                   </div>
                   {propertyData.photos.slice(1, 5).map((photo, index) => (
                     <div key={photo.photo_id} className="relative">
@@ -547,8 +571,7 @@ const UV_PropertyDetail: React.FC = () => {
                         onClick={() => {
                           setSelectedPhotoIndex(index + 1);
                           setShowAllPhotos(true);
-                        }}
-                      />
+                        }}/api/>
                       {index === 3 && propertyData.photos.length > 5 && (
                         <div 
                           className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center cursor-pointer"
@@ -914,17 +937,8 @@ const UV_PropertyDetail: React.FC = () => {
                       <input
                         type="date"
                         value={selectedDates.check_in_date}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setSelectedDates(prev => ({ 
-                            ...prev, 
-                            check_in_date: value,
-                            // Clear check-out if it's before the new check-in date
-                            check_out_date: prev.check_out_date && value && prev.check_out_date <= value ? '' : prev.check_out_date
-                          }));
-                        }}
-                        min={getTodayDateString()}
-                        max={getMaxBookingDate()}
+                        onChange={(e) => setSelectedDates(prev => ({ ...prev, check_in_date: e.target.value }))}
+                        min={new Date().toISOString().split('T')[0]}
                         className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
@@ -933,12 +947,8 @@ const UV_PropertyDetail: React.FC = () => {
                       <input
                         type="date"
                         value={selectedDates.check_out_date}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setSelectedDates(prev => ({ ...prev, check_out_date: value }));
-                        }}
-                        min={selectedDates.check_in_date || getTodayDateString()}
-                        max={getMaxBookingDate()}
+                        onChange={(e) => setSelectedDates(prev => ({ ...prev, check_out_date: e.target.value }))}
+                        min={selectedDates.check_in_date || new Date().toISOString().split('T')[0]}
                         className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>

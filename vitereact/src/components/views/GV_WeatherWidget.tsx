@@ -51,14 +51,10 @@ const GV_WeatherWidget: React.FC = () => {
     // Property detail page - would get location from property data
     if (location.pathname.includes('/property/')) {
       return params.property_id ? `property_${params.property_id}` : null;
-    }
-
-    // Destination guide page
+    }/api// Destination guide page
     if (location.pathname.includes('/destinations/') && params.destination_slug) {
       return `dest_${params.destination_slug}`;
-    }
-
-    // Search results or landing page with search destination
+    }/api// Search results or landing page with search destination
     if (searchDestination) {
       return `search_${searchDestination.replace(/[^a-zA-Z0-9]/g, '_')}`;
     }
@@ -83,7 +79,7 @@ const GV_WeatherWidget: React.FC = () => {
       if (!selectedLocationId) throw new Error('No location selected');
       
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/locations/${selectedLocationId}/weather`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/locations/${selectedLocationId}/api/weather`,
         {
           params: {
             forecast_days: 5,
@@ -124,7 +120,7 @@ const GV_WeatherWidget: React.FC = () => {
       
       return response.data;
     },
-    onSuccess: (_, newUnit) => {
+    onSuccess: (data, newUnit) => {
       updateTemperatureUnit(newUnit);
       queryClient.invalidateQueries({ queryKey: ['weather'] });
     },
