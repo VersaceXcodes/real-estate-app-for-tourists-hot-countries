@@ -5,25 +5,25 @@ import { v4 as uuidv4 } from 'uuid';
 
 // Mock external dependencies
 jest.mock('nodemailer', () => ({
-  createTransporter: jest.fn().mockReturnValue({
-    sendMail: jest.fn().mockResolvedValue({ messageId: 'test-email-id' })
-  })
+  createTransporter: jest.fn(() => ({
+    sendMail: jest.fn(() => Promise.resolve({ messageId: 'test-email-id' }))
+  }))
 }));
 
 jest.mock('stripe', () => ({
   __esModule: true,
-  default: jest.fn().mockImplementation(() => ({
+  default: jest.fn(() => ({
     charges: {
-      create: jest.fn().mockResolvedValue({
+      create: jest.fn(() => Promise.resolve({
         id: 'ch_test_123',
         status: 'succeeded'
-      })
+      }))
     },
     refunds: {
-      create: jest.fn().mockResolvedValue({
+      create: jest.fn(() => Promise.resolve({
         id: 'rf_test_123',
         status: 'succeeded'
-      })
+      }))
     }
   }))
 }));

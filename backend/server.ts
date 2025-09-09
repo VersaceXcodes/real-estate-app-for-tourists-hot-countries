@@ -776,7 +776,7 @@ app.get('/api/properties', optionalAuth, async (req, res) => {
     
     try {
       let whereConditions = ['p.is_active = true'];
-      let queryParams = [];
+      let queryParams: any[] = [];
       let paramIndex = 1;
 
       // Build dynamic WHERE conditions
@@ -1079,7 +1079,7 @@ app.get('/api/locations/:location_id/attractions', async (req, res) => {
     
     try {
       let whereConditions = [`location_id = $1`];
-      let queryParams = [location_id];
+      let queryParams: any[] = [location_id];
       let paramIndex = 2;
 
       if (category) {
@@ -1090,7 +1090,7 @@ app.get('/api/locations/:location_id/attractions', async (req, res) => {
 
       if (is_featured !== undefined) {
         whereConditions.push(`is_featured = $${paramIndex}`);
-        queryParams.push(is_featured === 'true');
+        queryParams.push(is_featured === 'true' ? 'true' : 'false');
         paramIndex++;
       }
 
@@ -1101,7 +1101,7 @@ app.get('/api/locations/:location_id/attractions', async (req, res) => {
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
 
-      queryParams.push(limitNum, offsetNum);
+      queryParams.push(limitNum.toString(), offsetNum.toString());
 
       const result = await client.query(attractionsQuery, queryParams);
 
@@ -1156,7 +1156,8 @@ app.get('/api/properties/:property_id/reviews', async (req, res) => {
 
       if (min_rating) {
         whereConditions.push(`r.overall_rating >= $${paramIndex}`);
-        queryParams.push(parseInt(min_rating));
+        const ratingValue = Array.isArray(min_rating) ? min_rating[0] : min_rating;
+        queryParams.push(parseInt(ratingValue as string).toString());
         paramIndex++;
       }
 
@@ -1182,7 +1183,7 @@ app.get('/api/properties/:property_id/reviews', async (req, res) => {
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
 
-      queryParams.push(limitNum, offsetNum);
+      queryParams.push(limitNum.toString(), offsetNum.toString());
 
       const result = await client.query(reviewsQuery, queryParams);
 
@@ -1498,7 +1499,8 @@ app.get('/api/currency-rates', async (req, res) => {
       }
     };
 
-    const baseRates = mockRates[base_currency] || mockRates['USD'];
+    const baseCurrencyKey = Array.isArray(base_currency) ? base_currency[0] : base_currency;
+    const baseRates = mockRates[baseCurrencyKey as string] || mockRates['USD'];
     let rates = baseRates;
 
     if (target_currencies) {
@@ -1539,7 +1541,7 @@ app.get('/api/system-alerts', async (req, res) => {
     
     try {
       let whereConditions = [];
-      let queryParams = [];
+      let queryParams: any[] = [];
       let paramIndex = 1;
 
       if (alert_type) {
@@ -1619,7 +1621,7 @@ app.get('/api/market-data', authenticateToken, async (req, res) => {
     
     try {
       let whereConditions = [];
-      let queryParams = [];
+      let queryParams: any[] = [];
       let paramIndex = 1;
 
       if (location_id) {
@@ -1711,7 +1713,7 @@ io.on('connection', (socket) => {
   // Handle user authentication for socket
   socket.on('authenticate', async (token) => {
     try {
-      const decoded = jwt.verify(token, JWT_SECRET);
+      const decoded = jwt.verify(token, JWT_SECRET) as any;
       const client = await pool.connect();
       
       try {
@@ -1921,7 +1923,7 @@ app.get(/^(?!\/api).*/, (req, res) => {
 export { app, pool };
 
 // Start the server
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(Number(PORT), '0.0.0.0', () => {
   console.log(`🚀 SunVillas server running on port ${PORT}`);
   console.log(`📡 WebSocket server ready for real-time features`);
   console.log(`🌐 API endpoints available at http://localhost:${PORT}/api`);
