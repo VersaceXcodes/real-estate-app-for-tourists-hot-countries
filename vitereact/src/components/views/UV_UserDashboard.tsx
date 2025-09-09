@@ -378,7 +378,7 @@ const UV_UserDashboard: React.FC = () => {
                       <img
                         className="h-12 w-12 rounded-full object-cover"
                         src={currentUser.profile_photo_url}
-                        alt={`${currentUser.first_name} ${currentUser.last_name}`}/api/>
+                        alt={`${currentUser.first_name} ${currentUser.last_name}`} />
                     ) : (
                       <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
                         <span className="text-blue-600 font-medium text-lg">
@@ -559,7 +559,7 @@ const UV_UserDashboard: React.FC = () => {
                                 <img
                                   className="h-20 w-20 rounded-lg object-cover"
                                   src={booking.property_photo}
-                                  alt={booking.property_title}/api/>
+                                  alt={booking.property_title} />
                               ) : (
                                 <div className="h-20 w-20 rounded-lg bg-gray-200 flex items-center justify-center">
                                   <span className="text-gray-400 text-2xl">🏠</span>
@@ -754,7 +754,7 @@ const UV_UserDashboard: React.FC = () => {
                               <img
                                 className="h-20 w-20 rounded-lg object-cover"
                                 src={property.cover_photo}
-                                alt={property.title}/api/>
+                                alt={property.title} />
                             ) : (
                               <div className="h-20 w-20 rounded-lg bg-gray-200 flex items-center justify-center">
                                 <span className="text-gray-400 text-2xl">🏠</span>
@@ -866,7 +866,7 @@ const UV_UserDashboard: React.FC = () => {
                             <img
                               className="w-full h-48 object-cover"
                               src={favorite.cover_photo}
-                              alt={favorite.title}/api/>
+                              alt={favorite.title} />
                           ) : (
                             <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
                               <span className="text-gray-400 text-4xl">🏠</span>
@@ -954,7 +954,7 @@ const UV_UserDashboard: React.FC = () => {
                               <img
                                 className="h-10 w-10 rounded-full object-cover"
                                 src={message.participant_photo}
-                                alt={message.participant_name}/api/>
+                                alt={message.participant_name} />
                             ) : (
                               <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
                                 <span className="text-gray-400 text-sm">👤</span>
@@ -1012,7 +1012,7 @@ const UV_UserDashboard: React.FC = () => {
                         <img
                           className="h-24 w-24 rounded-full object-cover"
                           src={currentUser.profile_photo_url}
-                          alt={`${currentUser.first_name} ${currentUser.last_name}`}/api/>
+                          alt={`${currentUser.first_name} ${currentUser.last_name}`} />
                       ) : (
                         <div className="h-24 w-24 rounded-full bg-blue-100 flex items-center justify-center">
                           <span className="text-blue-600 font-medium text-2xl">

@@ -357,7 +357,9 @@ const UV_PropertyDetail: React.FC = () => {
     if (!selectedDates.check_in_date || !selectedDates.check_out_date) {
       alert('Please select check-in and check-out dates');
       return;
-    }/api// Update global booking state
+    }
+
+// Update global booking state
     setCurrentBooking({
       booking_id: '',
       property_id: property_id!,
@@ -560,7 +562,7 @@ const UV_PropertyDetail: React.FC = () => {
                       onClick={() => {
                         setSelectedPhotoIndex(0);
                         setShowAllPhotos(true);
-                      }}/api/>
+                      }} />
                   </div>
                   {propertyData.photos.slice(1, 5).map((photo, index) => (
                     <div key={photo.photo_id} className="relative">
@@ -571,7 +573,7 @@ const UV_PropertyDetail: React.FC = () => {
                         onClick={() => {
                           setSelectedPhotoIndex(index + 1);
                           setShowAllPhotos(true);
-                        }}/api/>
+                        }} />
                       {index === 3 && propertyData.photos.length > 5 && (
                         <div 
                           className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center cursor-pointer"

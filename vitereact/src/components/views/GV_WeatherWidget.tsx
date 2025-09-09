@@ -51,10 +51,14 @@ const GV_WeatherWidget: React.FC = () => {
     // Property detail page - would get location from property data
     if (location.pathname.includes('/property/')) {
       return params.property_id ? `property_${params.property_id}` : null;
-    }/api// Destination guide page
+    }
+
+// Destination guide page
     if (location.pathname.includes('/destinations/') && params.destination_slug) {
       return `dest_${params.destination_slug}`;
-    }/api// Search results or landing page with search destination
+    }
+
+// Search results or landing page with search destination
     if (searchDestination) {
       return `search_${searchDestination.replace(/[^a-zA-Z0-9]/g, '_')}`;
     }

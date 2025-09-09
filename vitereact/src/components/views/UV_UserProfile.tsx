@@ -461,7 +461,7 @@ const UV_UserProfile: React.FC = () => {
                         onChange={(e) => handleInputChange('bio', e.target.value)}
                         placeholder="Tell us about yourself..."
                         className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                        maxLength={500}/api/>
+                        maxLength={500} />
                       <p className="mt-2 text-sm text-gray-500">{profileFormData.bio.length}/api/500 characters</p>
                     </div>
 

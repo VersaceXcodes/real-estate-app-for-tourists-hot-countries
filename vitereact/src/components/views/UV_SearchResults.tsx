@@ -51,7 +51,9 @@ interface SavedSearch {
 interface UserFavorite {
   property_id: string;
   favorited_at: string;
-}/api// Filter interfaces
+}
+
+// Filter interfaces
 interface SearchFilters {
   destination: string;
   check_in_date: string;

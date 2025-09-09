@@ -265,7 +265,9 @@ const UV_Landing: React.FC = () => {
     if (!searchForm.destination) {
       alert('Please select a destination');
       return;
-    }/api// Update global search state
+    }
+
+// Update global search state
     updateSearchCriteria({
       destination: searchForm.destination,
       check_in_date: searchForm.check_in_date,

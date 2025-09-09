@@ -249,7 +249,9 @@ const UV_MessageCenter: React.FC = () => {
         const matchesProperty = conv.property?.title?.toLowerCase().includes(searchLower);
         
         if (!matchesTitle && !matchesUser && !matchesProperty) return false;
-      }/api// Type filter
+      }
+
+// Type filter
       if (filterType !== 'all' && conv.conversation_type !== filterType) return false;
       
       return true;
@@ -261,7 +263,9 @@ const UV_MessageCenter: React.FC = () => {
         const aUnread = a.unread_count || 0;
         const bUnread = b.unread_count || 0;
         if (aUnread !== bUnread) return bUnread - aUnread;
-      }/api// Default sort by date
+      }
+
+// Default sort by date
       const aDate = new Date(a.last_message_at || a.created_at).getTime();
       const bDate = new Date(b.last_message_at || b.created_at).getTime();
       return bDate - aDate;
@@ -290,7 +294,9 @@ const UV_MessageCenter: React.FC = () => {
     // Join conversation room
     if (activeConversationId) {
       joinConversation(activeConversationId);
-    }/api// Listen for real-time events
+    }
+
+// Listen for real-time events
     const handleMessageReceived = (data: any) => {
       if (data.conversation_id === activeConversationId) {
         // Add message to cache
@@ -377,10 +383,14 @@ const UV_MessageCenter: React.FC = () => {
     if (!isTyping && text.length > 0 && activeConversationId) {
       setIsTyping(true);
       sendTypingIndicator(activeConversationId, true);
-    }/api// Clear previous timeout
+    }
+
+// Clear previous timeout
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
-    }/api// Set new timeout
+    }
+
+// Set new timeout
     typingTimeoutRef.current = setTimeout(() => {
       if (isTyping && activeConversationId) {
         setIsTyping(false);
@@ -934,7 +944,7 @@ const UV_MessageCenter: React.FC = () => {
                   })
                 )}
                 
-                <div ref={messagesEndRef}/api/>
+                <div ref={messagesEndRef} />
               </div>
 
               {/* Message input */}
@@ -953,7 +963,7 @@ const UV_MessageCenter: React.FC = () => {
                           e.preventDefault();
                           handleSendMessage(e);
                         }
-                      }}/api/>
+                      }} />
                     
                     {selectedFiles.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-2">

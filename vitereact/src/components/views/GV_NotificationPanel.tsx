@@ -294,7 +294,7 @@ const GV_NotificationPanel: React.FC = () => {
       >
         {toastNotifications.map((toast) => (
           <div key={toast.id} className="pointer-events-auto animate-slide-in-right">
-            <ToastItem toast={toast}/api/>
+            <ToastItem toast={toast} />
           </div>
         ))}
       </div>

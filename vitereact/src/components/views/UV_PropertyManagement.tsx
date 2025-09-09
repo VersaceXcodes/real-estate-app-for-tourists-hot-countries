@@ -412,7 +412,9 @@ const UV_PropertyManagement: React.FC = () => {
     if (wizardStep < 6) {
       setWizardStep(wizardStep + 1);
       return;
-    }/api// Final submission
+    }
+
+// Final submission
     if (createMode) {
       if (!propertyFormData.latitude) propertyFormData.latitude = 0;
       if (!propertyFormData.longitude) propertyFormData.longitude = 0;
@@ -533,7 +535,7 @@ const UV_PropertyManagement: React.FC = () => {
                         {index < 5 && (
                           <div className={`flex-1 h-1 mx-2 ${
                             step < wizardStep ? 'bg-blue-600' : 'bg-gray-200'
-                          }`}/api/>
+                          }`} />
                         )}
                       </React.Fragment>
                     ))}
@@ -686,7 +688,7 @@ const UV_PropertyManagement: React.FC = () => {
                           onChange={(e) => handleInputChange('bedrooms', parseInt(e.target.value) || 0)}
                           className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                             formErrors.bedrooms ? 'border-red-500' : 'border-gray-300'
-                          }`}/api/>
+                          }`} />
                         {formErrors.bedrooms && (
                           <p className="mt-1 text-sm text-red-600">{formErrors.bedrooms}</p>
                         )}
@@ -704,7 +706,7 @@ const UV_PropertyManagement: React.FC = () => {
                           onChange={(e) => handleInputChange('bathrooms', parseFloat(e.target.value) || 0)}
                           className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                             formErrors.bathrooms ? 'border-red-500' : 'border-gray-300'
-                          }`}/api/>
+                          }`} />
                         {formErrors.bathrooms && (
                           <p className="mt-1 text-sm text-red-600">{formErrors.bathrooms}</p>
                         )}
@@ -721,7 +723,7 @@ const UV_PropertyManagement: React.FC = () => {
                           onChange={(e) => handleInputChange('guest_count', parseInt(e.target.value) || 1)}
                           className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                             formErrors.guest_count ? 'border-red-500' : 'border-gray-300'
-                          }`}/api/>
+                          }`} />
                         {formErrors.guest_count && (
                           <p className="mt-1 text-sm text-red-600">{formErrors.guest_count}</p>
                         )}

@@ -559,7 +559,7 @@ const UV_Authentication: React.FC = () => {
                           <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                             <div
                               className={`h-full transition-all duration-300 ${getPasswordStrengthColor(passwordStrength)}`}
-                              style={{ width: `${passwordStrength}%` }}/api/>
+                              style={{ width: `${passwordStrength}%` }} />
                           </div>
                         </div>
                         <div className="ml-2 text-xs text-gray-500">
