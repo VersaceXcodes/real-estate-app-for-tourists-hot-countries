@@ -5,14 +5,14 @@ import { v4 as uuidv4 } from 'uuid';
 
 // Mock external dependencies
 jest.mock('nodemailer', () => ({
-  createTransporter: jest.fn(() => ({
+  createTransporter: jest.fn().mockReturnValue({
     sendMail: jest.fn().mockResolvedValue({ messageId: 'test-email-id' })
-  }))
+  })
 }));
 
 jest.mock('stripe', () => ({
   __esModule: true,
-  default: jest.fn(() => ({
+  default: jest.fn().mockImplementation(() => ({
     charges: {
       create: jest.fn().mockResolvedValue({
         id: 'ch_test_123',
@@ -29,14 +29,24 @@ jest.mock('stripe', () => ({
 }));
 
 // Mock weather API
-global.fetch = jest.fn();
+global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>;
 
 describe('SunVillas Backend API Tests', () => {
-  let testUsers = {};
-  let testProperties = {};
-  let testBookings = {};
-  let testConversations = {};
-  let authTokens = {};
+  let testUsers: any = {
+    guest: null,
+    host: null,
+    main: null
+  };
+  let testProperties: any = {};
+  let testBookings: any = {};
+  let testConversations: any = {};
+  let authTokens: any = {
+    guest: null,
+    host: null,
+    main: null,
+    payment: null,
+    favorite: null
+  };
 
   beforeAll(async () => {
     // Setup test database connection
@@ -1709,7 +1719,7 @@ describe('SunVillas Backend API Tests', () => {
         const response = await request(app)
           .get('/api/properties')
           .query({
-            min_guest_count: 0
+            min_guest_count: '0'
           })
           .expect(400);
 
@@ -1720,7 +1730,7 @@ describe('SunVillas Backend API Tests', () => {
     describe('Rate Limiting', () => {
       it('should handle too many requests', async () => {
         // Simulate rate limiting by making many requests quickly
-        const requests = Array(20).fill().map(() =>
+        const requests = Array(20).fill(null).map(() =>
           request(app).get('/api/properties')
         );
 
@@ -1934,7 +1944,7 @@ describe('SunVillas Backend API Tests', () => {
   describe('Performance and Load Testing', () => {
     describe('Database Performance', () => {
       it('should handle concurrent property searches', async () => {
-        const concurrentSearches = Array(10).fill().map(() =>
+        const concurrentSearches = Array(10).fill(null).map(() =>
           request(app)
             .get('/api/properties')
             .query({
@@ -1968,7 +1978,7 @@ describe('SunVillas Backend API Tests', () => {
           adults: 4
         };
 
-        const concurrentBookings = Array(3).fill().map(() =>
+        const concurrentBookings = Array(3).fill(null).map(() =>
           request(app)
             .post('/api/bookings')
             .set('Authorization', `Bearer ${authTokens.guest}`)
