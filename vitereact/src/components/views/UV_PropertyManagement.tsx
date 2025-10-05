@@ -167,7 +167,6 @@ const UV_PropertyManagement: React.FC = () => {
   const setOwnedProperties = useAppStore(state => state.set_owned_properties);
   const addOwnedProperty = useAppStore(state => state.add_owned_property);
   const updateOwnedProperty = useAppStore(state => state.update_owned_property);
-  const setPropertyManagementLoading = useAppStore(state => state.set_property_management_loading);
 
   // Local state for forms
   const [createMode, setCreateMode] = useState(false);
@@ -1295,7 +1294,7 @@ const UV_PropertyManagement: React.FC = () => {
                           property_id: selectedPropertyId,
                           title: propertyFormData.title,
                           description: propertyFormData.description,
-                          is_active: propertyFormData.is_active
+                          is_active: (propertyFormData as any).is_active
                         } as UpdatePropertyPayload);
                       }
                     }} className="space-y-4">
@@ -1328,7 +1327,7 @@ const UV_PropertyManagement: React.FC = () => {
                         <input
                           type="checkbox"
                           id="is-active"
-                          checked={propertyFormData.is_active !== false}
+                          checked={(propertyFormData as any).is_active !== false}
                           onChange={(e) => handleInputChange('is_active', e.target.checked)}
                           className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                         />

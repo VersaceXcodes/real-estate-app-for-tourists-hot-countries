@@ -383,7 +383,7 @@ export const useAppStore = create<AppStore>()(
 
       // Authentication Actions
       login_user: async (email: string, password: string) => {
-        set((state) => ({
+        set(() => ({
           authentication_state: {
             ...state.authentication_state,
             authentication_status: {
@@ -403,7 +403,7 @@ export const useAppStore = create<AppStore>()(
 
           const { user, token } = response.data;
 
-          set((state) => ({
+          set(() => ({
             authentication_state: {
               current_user: user,
               auth_token: token,
@@ -430,7 +430,7 @@ export const useAppStore = create<AppStore>()(
         } catch (error: any) {
           const errorMessage = error.response?.data?.message || error.message || 'Login failed';
           
-          set((state) => ({
+          set(() => ({
             authentication_state: {
               current_user: null,
               auth_token: null,
@@ -446,7 +446,7 @@ export const useAppStore = create<AppStore>()(
       },
 
       register_user: async (userData) => {
-        set((state) => ({
+        set(() => ({
           authentication_state: {
             ...state.authentication_state,
             authentication_status: {
@@ -476,7 +476,7 @@ export const useAppStore = create<AppStore>()(
 
           const { user, token } = response.data;
 
-          set((state) => ({
+          set(() => ({
             authentication_state: {
               current_user: user,
               auth_token: token,
@@ -503,7 +503,7 @@ export const useAppStore = create<AppStore>()(
         } catch (error: any) {
           const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
           
-          set((state) => ({
+          set(() => ({
             authentication_state: {
               current_user: null,
               auth_token: null,
@@ -526,7 +526,7 @@ export const useAppStore = create<AppStore>()(
           socket.disconnect();
         }
 
-        set((state) => ({
+        set(() => ({
           authentication_state: {
             current_user: null,
             auth_token: null,
@@ -564,7 +564,7 @@ export const useAppStore = create<AppStore>()(
         const token = authentication_state.auth_token;
         
         if (!token) {
-          set((state) => ({
+          set(() => ({
             authentication_state: {
               ...state.authentication_state,
               authentication_status: {
@@ -584,7 +584,7 @@ export const useAppStore = create<AppStore>()(
 
           const user = response.data;
           
-          set((state) => ({
+          set(() => ({
             authentication_state: {
               current_user: user,
               auth_token: token,
@@ -610,7 +610,7 @@ export const useAppStore = create<AppStore>()(
           get().initialize_socket();
         } catch (error) {
           // Token is invalid, clear auth state
-          set((state) => ({
+          set(() => ({
             authentication_state: {
               current_user: null,
               auth_token: null,
@@ -625,7 +625,7 @@ export const useAppStore = create<AppStore>()(
       },
 
       clear_auth_error: () => {
-        set((state) => ({
+        set(() => ({
           authentication_state: {
             ...state.authentication_state,
             error_message: null,
@@ -634,7 +634,7 @@ export const useAppStore = create<AppStore>()(
       },
 
       update_user_profile: (userData: Partial<User>) => {
-        set((state) => ({
+        set(() => ({
           authentication_state: {
             ...state.authentication_state,
             current_user: state.authentication_state.current_user
@@ -646,7 +646,7 @@ export const useAppStore = create<AppStore>()(
 
       // User Preferences Actions
       update_currency: (currency: string) => {
-        set((state) => ({
+        set(() => ({
           user_preferences: {
             ...state.user_preferences,
             currency,
@@ -655,7 +655,7 @@ export const useAppStore = create<AppStore>()(
       },
 
       update_language: (language: string) => {
-        set((state) => ({
+        set(() => ({
           user_preferences: {
             ...state.user_preferences,
             language,
@@ -664,7 +664,7 @@ export const useAppStore = create<AppStore>()(
       },
 
       update_temperature_unit: (unit: 'celsius' | 'fahrenheit') => {
-        set((state) => ({
+        set(() => ({
           user_preferences: {
             ...state.user_preferences,
             temperature_unit: unit,
@@ -673,7 +673,7 @@ export const useAppStore = create<AppStore>()(
       },
 
       update_notification_settings: (settings: Record<string, boolean>) => {
-        set((state) => ({
+        set(() => ({
           user_preferences: {
             ...state.user_preferences,
             notification_settings: { ...state.user_preferences.notification_settings, ...settings },
@@ -683,7 +683,7 @@ export const useAppStore = create<AppStore>()(
 
       // Search State Actions
       update_search_criteria: (criteria: Partial<SearchState>) => {
-        set((state) => ({
+        set(() => ({
           search_state: {
             ...state.search_state,
             ...criteria,
@@ -692,7 +692,7 @@ export const useAppStore = create<AppStore>()(
       },
 
       set_search_results: (results: Property[]) => {
-        set((state) => ({
+        set(() => ({
           search_state: {
             ...state.search_state,
             search_results: results,
@@ -702,19 +702,19 @@ export const useAppStore = create<AppStore>()(
       },
 
       add_saved_search: (search: SavedSearch) => {
-        set((state) => ({
+        set(() => ({
           search_state: {
             ...state.search_state,
-            saved_searches: [...state.search_state.saved_searches, search],
+            saved_searches: [...state.searchstate.saved_searches, search],
           },
         }));
       },
 
       remove_saved_search: (search_id: string) => {
-        set((state) => ({
+        set(() => ({
           search_state: {
             ...state.search_state,
-            saved_searches: state.search_state.saved_searches.filter(
+            saved_searches: state.searchstate.saved_searches.filter(
               search => search.search_id !== search_id
             ),
           },
@@ -722,7 +722,7 @@ export const useAppStore = create<AppStore>()(
       },
 
       clear_search_results: () => {
-        set((state) => ({
+        set(() => ({
           search_state: {
             ...state.search_state,
             search_results: [],
@@ -733,7 +733,7 @@ export const useAppStore = create<AppStore>()(
 
       // Booking State Actions
       set_current_booking: (booking: Booking | null) => {
-        set((state) => ({
+        set(() => ({
           booking_state: {
             ...state.booking_state,
             current_booking: booking,
@@ -742,7 +742,7 @@ export const useAppStore = create<AppStore>()(
       },
 
       update_booking_step: (step: number) => {
-        set((state) => ({
+        set(() => ({
           booking_state: {
             ...state.booking_state,
             booking_step: step,
@@ -751,7 +751,7 @@ export const useAppStore = create<AppStore>()(
       },
 
       set_booking_loading: (loading: boolean) => {
-        set((state) => ({
+        set(() => ({
           booking_state: {
             ...state.booking_state,
             booking_loading: loading,
@@ -760,7 +760,7 @@ export const useAppStore = create<AppStore>()(
       },
 
       set_payment_processing: (processing: boolean) => {
-        set((state) => ({
+        set(() => ({
           booking_state: {
             ...state.booking_state,
             payment_processing: processing,
@@ -769,7 +769,7 @@ export const useAppStore = create<AppStore>()(
       },
 
       set_booking_error: (error: string | null) => {
-        set((state) => ({
+        set(() => ({
           booking_state: {
             ...state.booking_state,
             booking_error: error,
@@ -778,7 +778,7 @@ export const useAppStore = create<AppStore>()(
       },
 
       clear_booking_state: () => {
-        set((state) => ({
+        set(() => ({
           booking_state: {
             current_booking: null,
             booking_step: 1,
@@ -791,7 +791,7 @@ export const useAppStore = create<AppStore>()(
 
       // Notifications Actions
       set_unread_messages: (count: number) => {
-        set((state) => ({
+        set(() => ({
           notifications_state: {
             ...state.notifications_state,
             unread_messages: count,
@@ -800,7 +800,7 @@ export const useAppStore = create<AppStore>()(
       },
 
       set_unread_notifications: (count: number) => {
-        set((state) => ({
+        set(() => ({
           notifications_state: {
             ...state.notifications_state,
             unread_notifications: count,
@@ -808,26 +808,26 @@ export const useAppStore = create<AppStore>()(
         }));
       },
 
-      add_notification: (notification: Notification) => {
-        set((state) => ({
+      add_notification: (_notification: Notification) => {
+        set(() => ({
           notifications_state: {
             ...state.notifications_state,
-            unread_notifications: state.notifications_state.unread_notifications + 1,
+            unread_notifications: state.notificationsstate.unread_notifications + 1,
           },
         }));
       },
 
-      mark_notification_read: (notification_id: string) => {
-        set((state) => ({
+      mark_notification_read: (_notification_id: string) => {
+        set(() => ({
           notifications_state: {
             ...state.notifications_state,
-            unread_notifications: Math.max(0, state.notifications_state.unread_notifications - 1),
+            unread_notifications: Math.max(0, state.notificationsstate.unread_notifications - 1),
           },
         }));
       },
 
       set_system_alerts: (alerts: SystemAlert[]) => {
-        set((state) => ({
+        set(() => ({
           notifications_state: {
             ...state.notifications_state,
             system_alerts: alerts,
@@ -836,17 +836,17 @@ export const useAppStore = create<AppStore>()(
       },
 
       add_system_alert: (alert: SystemAlert) => {
-        set((state) => ({
+        set(() => ({
           notifications_state: {
             ...state.notifications_state,
-            system_alerts: [...state.notifications_state.system_alerts, alert],
+            system_alerts: [...state.notificationsstate.system_alerts, alert],
           },
         }));
       },
 
       // Property Management Actions
       set_owned_properties: (properties: Property[]) => {
-        set((state) => ({
+        set(() => ({
           property_management_state: {
             ...state.property_management_state,
             owned_properties: properties,
@@ -856,19 +856,19 @@ export const useAppStore = create<AppStore>()(
       },
 
       add_owned_property: (property: Property) => {
-        set((state) => ({
+        set(() => ({
           property_management_state: {
             ...state.property_management_state,
-            owned_properties: [...state.property_management_state.owned_properties, property],
+            owned_properties: [...state.property_managementstate.owned_properties, property],
           },
         }));
       },
 
       update_owned_property: (property_id: string, updates: Partial<Property>) => {
-        set((state) => ({
+        set(() => ({
           property_management_state: {
             ...state.property_management_state,
-            owned_properties: state.property_management_state.owned_properties.map(
+            owned_properties: state.property_managementstate.owned_properties.map(
               property => property.property_id === property_id 
                 ? { ...property, ...updates }
                 : property
@@ -878,10 +878,10 @@ export const useAppStore = create<AppStore>()(
       },
 
       remove_owned_property: (property_id: string) => {
-        set((state) => ({
+        set(() => ({
           property_management_state: {
             ...state.property_management_state,
-            owned_properties: state.property_management_state.owned_properties.filter(
+            owned_properties: state.property_managementstate.owned_properties.filter(
               property => property.property_id !== property_id
             ),
           },
@@ -889,7 +889,7 @@ export const useAppStore = create<AppStore>()(
       },
 
       set_property_analytics: (analytics: Record<string, any>) => {
-        set((state) => ({
+        set(() => ({
           property_management_state: {
             ...state.property_management_state,
             property_analytics: analytics,
@@ -898,7 +898,7 @@ export const useAppStore = create<AppStore>()(
       },
 
       set_booking_requests: (requests: Booking[]) => {
-        set((state) => ({
+        set(() => ({
           property_management_state: {
             ...state.property_management_state,
             booking_requests: requests,
@@ -907,7 +907,7 @@ export const useAppStore = create<AppStore>()(
       },
 
       set_property_management_loading: (loading: boolean) => {
-        set((state) => ({
+        set(() => ({
           property_management_state: {
             ...state.property_management_state,
             is_loading: loading,
@@ -917,7 +917,7 @@ export const useAppStore = create<AppStore>()(
 
       // Investment State Actions
       set_investment_portfolio: (portfolio: InvestmentAnalytics[]) => {
-        set((state) => ({
+        set(() => ({
           investment_state: {
             ...state.investment_state,
             portfolio,
@@ -927,19 +927,19 @@ export const useAppStore = create<AppStore>()(
       },
 
       add_investment: (investment: InvestmentAnalytics) => {
-        set((state) => ({
+        set(() => ({
           investment_state: {
             ...state.investment_state,
-            portfolio: [...state.investment_state.portfolio, investment],
+            portfolio: [...state.investmentstate.portfolio, investment],
           },
         }));
       },
 
       update_investment: (analytics_id: string, updates: Partial<InvestmentAnalytics>) => {
-        set((state) => ({
+        set(() => ({
           investment_state: {
             ...state.investment_state,
-            portfolio: state.investment_state.portfolio.map(
+            portfolio: state.investmentstate.portfolio.map(
               investment => investment.analytics_id === analytics_id 
                 ? { ...investment, ...updates }
                 : investment
@@ -949,7 +949,7 @@ export const useAppStore = create<AppStore>()(
       },
 
       set_market_data: (data: any[]) => {
-        set((state) => ({
+        set(() => ({
           investment_state: {
             ...state.investment_state,
             market_data: data,
@@ -958,7 +958,7 @@ export const useAppStore = create<AppStore>()(
       },
 
       set_roi_tracking: (tracking: Record<string, any>) => {
-        set((state) => ({
+        set(() => ({
           investment_state: {
             ...state.investment_state,
             roi_tracking: tracking,
@@ -967,7 +967,7 @@ export const useAppStore = create<AppStore>()(
       },
 
       set_investment_loading: (loading: boolean) => {
-        set((state) => ({
+        set(() => ({
           investment_state: {
             ...state.investment_state,
             is_loading: loading,
@@ -987,7 +987,7 @@ export const useAppStore = create<AppStore>()(
 
         newSocket.on('connect', () => {
           console.log('WebSocket connected');
-          set((state) => ({ is_connected: true }));
+          set((_state) => ({ is_connected: true }));
           
           // Authenticate the socket connection
           newSocket.emit('authenticate', authentication_state.auth_token);
@@ -995,7 +995,7 @@ export const useAppStore = create<AppStore>()(
 
         newSocket.on('disconnect', () => {
           console.log('WebSocket disconnected');
-          set((state) => ({ is_connected: false }));
+          set((_state) => ({ is_connected: false }));
         });
 
         newSocket.on('authenticated', (data) => {
@@ -1013,10 +1013,10 @@ export const useAppStore = create<AppStore>()(
 
         newSocket.on('message_received', (data) => {
           console.log('Message received:', data);
-          set((state) => ({
+          set(() => ({
             notifications_state: {
               ...state.notifications_state,
-              unread_messages: state.notifications_state.unread_messages + 1,
+              unread_messages: state.notificationsstate.unread_messages + 1,
             },
           }));
         });
@@ -1059,7 +1059,7 @@ export const useAppStore = create<AppStore>()(
           get().add_system_alert(data);
         });
 
-        set((state) => ({ socket: newSocket }));
+        set((_state) => ({ socket: newSocket }));
       },
 
       disconnect_socket: () => {
@@ -1067,7 +1067,7 @@ export const useAppStore = create<AppStore>()(
         
         if (socket) {
           socket.disconnect();
-          set((state) => ({ socket: null, is_connected: false }));
+          set((_state) => ({ socket: null, is_connected: false }));
         }
       },
 

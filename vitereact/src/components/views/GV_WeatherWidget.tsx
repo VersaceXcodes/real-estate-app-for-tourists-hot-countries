@@ -124,7 +124,7 @@ const GV_WeatherWidget: React.FC = () => {
       
       return response.data;
     },
-    onSuccess: (data, newUnit) => {
+    onSuccess: (_, newUnit) => {
       updateTemperatureUnit(newUnit);
       queryClient.invalidateQueries({ queryKey: ['weather'] });
     },

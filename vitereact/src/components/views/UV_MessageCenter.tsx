@@ -150,14 +150,7 @@ const UV_MessageCenter: React.FC = () => {
     );
   };
 
-  const createConversation = async (payload: CreateConversationPayload): Promise<Conversation> => {
-    const response = await axios.post(
-      `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/conversations`,
-      payload,
-      { headers: { Authorization: `Bearer ${authToken}` } }
-    );
-    return response.data;
-  };
+
 
   // React Query hooks
   const {

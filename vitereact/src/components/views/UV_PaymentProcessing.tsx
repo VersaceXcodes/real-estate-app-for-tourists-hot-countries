@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAppStore } from '@/store/main';
@@ -70,7 +70,6 @@ interface TransactionStatus {
 const UV_PaymentProcessing: React.FC = () => {
   const { booking_id } = useParams<{ booking_id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
 
   // Global state access
   const currentUser = useAppStore(state => state.authentication_state.current_user);
@@ -187,7 +186,7 @@ const UV_PaymentProcessing: React.FC = () => {
       }));
       setPaymentProcessing(true);
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       setTransactionStatus(prev => ({
         ...prev,
         is_processing: false,

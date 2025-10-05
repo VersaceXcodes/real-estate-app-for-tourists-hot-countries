@@ -47,7 +47,7 @@ const UV_Dashboard: React.FC = () => {
             <div className="border-4 border-dashed border-gray-200 rounded-lg p-8">
               <div className="text-center">
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                  Welcome back, {currentUser?.name}!
+                  Welcome back, {currentUser?.first_name} {currentUser?.last_name}!
                 </h2>
                 <p className="text-gray-600 mb-4">
                   This is your protected dashboard. You can only see this because you're authenticated.
@@ -57,7 +57,7 @@ const UV_Dashboard: React.FC = () => {
                     <strong>Email:</strong> {currentUser?.email}
                   </p>
                   <p className="text-blue-700 text-sm mt-1">
-                    <strong>User ID:</strong> {currentUser?.id}
+                    <strong>User ID:</strong> {currentUser?.user_id}
                   </p>
                 </div>
               </div>

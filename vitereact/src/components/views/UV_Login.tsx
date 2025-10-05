@@ -7,7 +7,6 @@ import { useAppStore } from '@/store/main';
 const UV_Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   
   // CRITICAL: Individual selectors, no object destructuring
@@ -22,11 +21,7 @@ const UV_Login: React.FC = () => {
     clearAuthError();
     
     try {
-      if (isRegisterMode) {
-        await registerUser(email, password, name);
-      } else {
-        await loginUser(email, password);
-      }
+      await loginUser(email, password);
     } catch (error) {
       // Error is handled in store
       console.error('Authentication error:', error);
@@ -38,7 +33,6 @@ const UV_Login: React.FC = () => {
     clearAuthError();
     setEmail('');
     setPassword('');
-    setName('');
   };
 
   return (
@@ -59,23 +53,7 @@ const UV_Login: React.FC = () => {
             )}
             
             <div className="space-y-4">
-              {isRegisterMode && (
-                <div>
-                  <label htmlFor="name" className="sr-only">
-                    Full Name
-                  </label>
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    required={isRegisterMode}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Full Name"
-                    className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  />
-                </div>
-              )}
+
               
               <div>
                 <label htmlFor="email" className="sr-only">

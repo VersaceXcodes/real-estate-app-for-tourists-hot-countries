@@ -45,16 +45,7 @@ const UV_Authentication: React.FC = () => {
     remember_me: false,
   });
   
-  const [registrationProgress, setRegistrationProgress] = useState({
-    step: 1,
-    completed_steps: [] as number[],
-  });
-  
-  const [verificationStatus, setVerificationStatus] = useState({
-    email_sent: false,
-    phone_sent: false,
-    email_verified: false,
-  });
+
   
   const [passwordResetData, setPasswordResetData] = useState({
     email: '',
@@ -106,23 +97,7 @@ const UV_Authentication: React.FC = () => {
     }
   });
 
-  // Email verification mutation
-  const emailVerificationMutation = useMutation({
-    mutationFn: async (payload: EmailVerificationPayload) => {
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/auth/verify-email`,
-        payload,
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-      return response.data;
-    },
-    onSuccess: () => {
-      setVerificationStatus(prev => ({ ...prev, email_verified: true }));
-    },
-    onError: (error: any) => {
-      console.error('Email verification error:', error);
-    }
-  });
+
 
   // Password strength calculator
   const calculatePasswordStrength = (password: string): number => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAppStore } from '@/store/main';
@@ -117,7 +117,7 @@ const PhotoUpload: React.FC<{
   onPhotosChange: (photos: string[]) => void;
   uploading: string[];
   errors: string[];
-}> = ({ photos, onPhotosChange, uploading, errors }) => {
+}> = ({ photos, onPhotosChange, errors }) => {
   const [dragOver, setDragOver] = useState(false);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -257,7 +257,6 @@ const PhotoUpload: React.FC<{
 
 const UV_ReviewSubmission: React.FC = () => {
   const { booking_id } = useParams<{ booking_id: string }>();
-  const navigate = useNavigate();
   
   // Individual Zustand selectors to avoid infinite loops
   const currentUser = useAppStore(state => state.authentication_state.current_user);
@@ -288,7 +287,7 @@ const UV_ReviewSubmission: React.FC = () => {
     can_submit: false,
   });
 
-  const [photoUploads, setPhotoUploads] = useState<PhotoUploads>({
+  const [photoUploads] = useState<PhotoUploads>({
     uploading_photos: [],
     uploaded_photos: [],
     upload_errors: [],
@@ -552,7 +551,7 @@ const UV_ReviewSubmission: React.FC = () => {
                           {[1, 2, 3, 4, 5].map((star) => (
                             <svg
                               key={star}
-                              className={`w-4 h-4 ${star <= reviewFormData[category.key as keyof ReviewFormData] ? 'text-yellow-400' : 'text-gray-300'}`}
+                              className={`w-4 h-4 ${star <= (reviewFormData[category.key as keyof ReviewFormData] as number) ? 'text-yellow-400' : 'text-gray-300'}`}
                               fill="currentColor"
                               viewBox="0 0 20 20"
                             >

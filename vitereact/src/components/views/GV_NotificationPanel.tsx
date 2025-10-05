@@ -74,7 +74,7 @@ const GV_NotificationPanel: React.FC = () => {
   });
 
   // Fetch system alerts for all users
-  const { data: systemAlerts, isLoading: alertsLoading } = useQuery({
+  const { data: systemAlerts } = useQuery({
     queryKey: ['system-alerts'],
     queryFn: async (): Promise<SystemAlertResponse> => {
       const response = await axios.get(

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link, useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '@/store/main';
@@ -49,35 +49,7 @@ interface HostInformation {
   member_since: string;
 }
 
-interface PropertyData {
-  property_id: string;
-  owner_id: string;
-  title: string;
-  description: string;
-  property_type: string;
-  country: string;
-  city: string;
-  address: string;
-  latitude: number;
-  longitude: number;
-  bedrooms: number;
-  bathrooms: number;
-  guest_count: number;
-  base_price_per_night: number;
-  currency: string;
-  cleaning_fee?: number;
-  security_deposit?: number;
-  amenities: string[];
-  house_rules: string[];
-  check_in_time: string;
-  check_out_time: string;
-  minimum_stay: number;
-  maximum_stay?: number;
-  instant_booking: boolean;
-  cancellation_policy: string;
-  average_rating?: number;
-  review_count: number;
-}
+
 
 interface PropertyDetailResponse {
   property_id: string;
@@ -147,7 +119,6 @@ const UV_PropertyDetail: React.FC = () => {
   const authToken = useAppStore(state => state.authentication_state.auth_token);
   const currency = useAppStore(state => state.user_preferences.currency);
   const temperatureUnit = useAppStore(state => state.user_preferences.temperature_unit);
-  const updateSearchCriteria = useAppStore(state => state.update_search_criteria);
   const setCurrentBooking = useAppStore(state => state.set_current_booking);
 
   // Local state management
@@ -165,7 +136,7 @@ const UV_PropertyDetail: React.FC = () => {
   const [showAllAmenities, setShowAllAmenities] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
-  const [reviewsPage, setReviewsPage] = useState(0);
+  const [reviewsPage] = useState(0);
 
   // Fetch property details
   const { data: propertyData, isLoading: propertyLoading, error: propertyError } = useQuery({
@@ -380,10 +351,10 @@ const UV_PropertyDetail: React.FC = () => {
       special_requests: '',
       booking_status: 'pending',
       payment_status: 'pending',
-      cancellation_reason: null,
-      cancelled_at: null,
-      check_in_instructions: null,
-      access_code: null,
+      cancellation_reason: undefined,
+      cancelled_at: undefined,
+      check_in_instructions: undefined,
+      access_code: undefined,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     });
