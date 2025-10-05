@@ -63,14 +63,7 @@ interface CreateMessagePayload {
   is_automated?: boolean;
 }
 
-interface CreateConversationPayload {
-  property_id?: string;
-  booking_id?: string;
-  guest_id: string;
-  host_id: string;
-  conversation_type?: 'inquiry' | 'booking' | 'support';
-  subject?: string;
-}
+
 
 const UV_MessageCenter: React.FC = () => {
   // Router hooks

@@ -8,9 +8,7 @@ interface PasswordResetPayload {
   email: string;
 }
 
-interface EmailVerificationPayload {
-  token: string;
-}
+
 
 const UV_Authentication: React.FC = () => {
   const [searchParams] = useSearchParams();
