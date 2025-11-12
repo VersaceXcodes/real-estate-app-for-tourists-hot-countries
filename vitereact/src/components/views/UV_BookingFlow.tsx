@@ -248,7 +248,7 @@ const UV_BookingFlow: React.FC = () => {
   }, [propertySummary, nights, guest_count]);
 
   // Check availability
-  const { } = useQuery({
+  useQuery({
     queryKey: ['availability', property_id, check_in_date, check_out_date],
     queryFn: async () => {
       const response = await axios.get(

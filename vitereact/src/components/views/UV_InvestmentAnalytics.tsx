@@ -152,7 +152,7 @@ const UV_InvestmentAnalytics: React.FC = () => {
     enabled: !!(authToken && currentUser?.user_id)
   });
 
-  const { } = useQuery({
+  useQuery({
     queryKey: ['currency-rates', userCurrency],
     queryFn: fetchCurrencyRates,
     staleTime: 10 * 60 * 1000,

@@ -403,7 +403,7 @@ export const useAppStore = create<AppStore>()(
 
           const { user, token } = response.data;
 
-          set((_state) => ({
+          set(() => ({
             authentication_state: {
               current_user: user,
               auth_token: token,
@@ -430,7 +430,7 @@ export const useAppStore = create<AppStore>()(
         } catch (error: any) {
           const errorMessage = error.response?.data?.message || error.message || 'Login failed';
           
-          set((_state) => ({
+          set(() => ({
             authentication_state: {
               current_user: null,
               auth_token: null,
@@ -476,7 +476,7 @@ export const useAppStore = create<AppStore>()(
 
           const { user, token } = response.data;
 
-          set((_state) => ({
+          set(() => ({
             authentication_state: {
               current_user: user,
               auth_token: token,
@@ -503,7 +503,7 @@ export const useAppStore = create<AppStore>()(
         } catch (error: any) {
           const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
           
-          set((_state) => ({
+          set(() => ({
             authentication_state: {
               current_user: null,
               auth_token: null,
@@ -584,7 +584,7 @@ export const useAppStore = create<AppStore>()(
 
           const user = response.data;
           
-          set((_state) => ({
+          set(() => ({
             authentication_state: {
               current_user: user,
               auth_token: token,
@@ -608,9 +608,9 @@ export const useAppStore = create<AppStore>()(
 
           // Initialize WebSocket connection
           get().initialize_socket();
-        } catch (error) {
+        } catch {
           // Token is invalid, clear auth state
-          set((_state) => ({
+          set(() => ({
             authentication_state: {
               current_user: null,
               auth_token: null,
@@ -987,7 +987,7 @@ export const useAppStore = create<AppStore>()(
 
         newSocket.on('connect', () => {
           console.log('WebSocket connected');
-          set((_state) => ({ is_connected: true }));
+          set(() => ({ is_connected: true }));
           
           // Authenticate the socket connection
           newSocket.emit('authenticate', authentication_state.auth_token);
@@ -995,7 +995,7 @@ export const useAppStore = create<AppStore>()(
 
         newSocket.on('disconnect', () => {
           console.log('WebSocket disconnected');
-          set((_state) => ({ is_connected: false }));
+          set(() => ({ is_connected: false }));
         });
 
         newSocket.on('authenticated', (data) => {
@@ -1067,7 +1067,7 @@ export const useAppStore = create<AppStore>()(
         
         if (socket) {
           socket.disconnect();
-          set((_state) => ({ socket: null, is_connected: false }));
+          set(() => ({ socket: null, is_connected: false }));
         }
       },
 
